@@ -169,7 +169,7 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 ## Novedades
 
 **3.2.0**
-- Nuevas tarjetas en la portada, idea y diseño de MrUriosXD: datos sobre la carátula, color e icono por tipo, etiqueta de temporada y géneros en chips.
+- Nuevas tarjetas en la portada, idea y diseño de MrUriosXD: datos sobre la carátula, color e icono por tipo, etiqueta de temporada y géneros en chips. Con el tema claro, el degradado es blanco y el texto oscuro.
 - Nuevo ajuste «Título y datos» para el tamaño del texto de las tarjetas.
 - Mejor adaptación de la cuadrícula y de los ajustes al móvil.
 

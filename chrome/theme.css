@@ -531,3 +531,22 @@ html.hcm .hcm-ver-open .hcm-ver-head { border-bottom: 1px solid var(--border); m
   html.hcm .hcm-ver-head { flex-wrap: wrap; }
   html.hcm .hcm-ver-meta { white-space: normal; }
 }
+
+/* tarjetas en tema claro: degradado blanco y texto oscuro */
+html.hcm.hcm-light .media-card { background-color: #e9ecf1; }
+html.hcm.hcm-light .card-overlay {
+  background: linear-gradient(to top, rgba(255, 255, 255, .97) 0%, rgba(255, 255, 255, .9) 50%, rgba(255, 255, 255, .45) 80%, transparent 100%);
+}
+html.hcm.hcm-light .card-title { color: #111827; text-shadow: 0 1px 2px rgba(255, 255, 255, .6); }
+html.hcm.hcm-light .card-meta { color: #4b5563; }
+html.hcm.hcm-light .type-pill {
+  color: color-mix(in srgb, var(--type-accent) 80%, #000);
+  background: color-mix(in srgb, var(--type-accent) 14%, #fff);
+  border-color: color-mix(in srgb, var(--type-accent) 45%, transparent);
+}
+html.hcm.hcm-light .tag-status { color: #374151; background: rgba(0, 0, 0, .07); }
+html.hcm.hcm-light .genre-chip { color: #4b5563; background: rgba(0, 0, 0, .05); border-color: rgba(0, 0, 0, .08); }
+html.hcm.hcm-light .media-card .badge-rating { background: rgba(255, 255, 255, .85); border-color: rgba(0, 0, 0, .08); }
+html.hcm.hcm-light .media-card .badge-rating.hcm-good { color: #047857; }
+html.hcm.hcm-light .media-card .badge-rating.hcm-mid { color: #9a6700; }
+html.hcm.hcm-light .media-card .badge-rating.hcm-low { color: #b42318; }
