@@ -344,22 +344,15 @@
         .replace(/(\d+[ªº]?)\s*Temporada/i, "$1 Temp.");
     }
 
-    // Clasificación del tipo: movie | series | doc | music
-    const fullText = (rawTitle + " " + (g.type || "") + " " + meta).toLowerCase();
-    const gType = (g.type || "").toLowerCase();
-    let type = "movie";
-    let typeText = "Película";
-
-    if (gType.includes("serie") || tagStatus || /temporada|episodio|\bcap[ií]tulo/i.test(fullText)) {
-      type = "series";
-      typeText = "Serie";
-    } else if (gType.includes("docu") || /documental/i.test(fullText)) {
-      type = "doc";
-      typeText = "Docu";
-    } else if (gType.includes("músic") || gType.includes("music") || /álbum|album|discograf/i.test(fullText)) {
-      type = "music";
-      typeText = "Música";
+    // Tipo: el que indica la propia web; solo si falta se deduce del título
+    const TYPES = { "Películas": "movie", "Series": "series", "Documentales": "doc", "Música": "music" };
+    const TYPE_TEXT = { movie: "Película", series: "Serie", doc: "Docu", music: "Música" };
+    let type = TYPES[g.type];
+    if (!type) {
+      const t = (g.type + " " + rawTitle).toLowerCase();
+      type = /serie/.test(t) || tagStatus ? "series" : /docu/.test(t) ? "doc" : /m[uú]sica/.test(t) ? "music" : "movie";
     }
+    const typeText = TYPE_TEXT[type];
 
     // Chips de género (hasta 2)
     const genres = (g.links.length ? g.links : (director ? [{ text: director }] : []))

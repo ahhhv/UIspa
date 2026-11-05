@@ -235,7 +235,6 @@ async function saveLook() {
     infinite: $("lookInfinite").checked
   };
   await api.storage.local.set({ look });
-  try { localStorage.setItem("uispa-look", JSON.stringify(look)); } catch (_) {}
   $("lookStatus").textContent = "Guardado. Se aplica al momento en las pestañas de Hispashare abiertas.";
 }
 for (const id of ["lookTheme", "lookSize", "lookTitleSize", "lookInfinite"]) $(id).addEventListener("change", saveLook);

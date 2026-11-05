@@ -8,7 +8,7 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 
 **Rediseño**
 - Tema oscuro, claro o automático (como el sistema), con una barra superior compacta: buscador, géneros, «Popular» y tu cuenta.
-- Portada y búsquedas en cuadrícula de carátulas, con nota, tipo, año y géneros. Las carátulas pueden ser pequeñas, medianas o grandes.
+- Portada y búsquedas en cuadrícula de carátulas, con el título, la nota, el año y los géneros sobre la propia carátula. El borde y la etiqueta de cada tarjeta indican el tipo con su color e icono (película, serie, documental o música), y las temporadas salen como etiqueta aparte («Temp. 1 a 4»). Las carátulas y el texto pueden ser pequeños, medianos o grandes.
 - Scroll infinito: al llegar al final se cargan más títulos sin cambiar de página (se puede desactivar y volver a la paginación).
 - Ficha de cada título con la carátula grande, notas de IMDb y usuarios, ficha técnica, sinopsis y reparto, y los comentarios justo debajo.
 - Descargas ordenadas: cada versión aparece plegada con un resumen (archivos, tamaño total, calidad, ripeador y fecha) y se abre con un clic. En series con varias temporadas, pestañas para ver solo una.
@@ -87,6 +87,7 @@ Pulsa el botón ◐ de la barra superior de Hispashare (o ve a la sección **Apa
 
 - **Tema:** oscuro, claro o automático (sigue el de tu sistema).
 - **Carátulas:** pequeñas, medianas o grandes.
+- **Título y datos:** tamaño del texto de las tarjetas (pequeño, mediano o grande).
 - **Cargar más títulos al bajar:** scroll infinito en la portada y las búsquedas; si lo desactivas, vuelve la paginación.
 - **Volver al diseño original:** quita el rediseño; para recuperarlo, pulsa «✨ Vista moderna» abajo a la derecha.
 
@@ -166,6 +167,11 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 - La coincidencia exacta con el servidor se basa en el tamaño que muestra la web, redondeado a dos decimales. Si renombras o recomprimes un archivo, aparecerá como «≈» u «otra calidad».
 
 ## Novedades
+
+**3.2.0**
+- Nuevas tarjetas en la portada, idea y diseño de MrUriosXD: datos sobre la carátula, color e icono por tipo, etiqueta de temporada y géneros en chips.
+- Nuevo ajuste «Título y datos» para el tamaño del texto de las tarjetas.
+- Mejor adaptación de la cuadrícula y de los ajustes al móvil.
 
 **3.1.0**
 - **Lo que te falta:** en cada versión de una serie, «📋 Copiar los que faltan» y «📥 Al NAS (faltan N)» copian o envían solo los capítulos que no tienes en Plex ni en Jellyfin.
