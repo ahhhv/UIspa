@@ -44,6 +44,13 @@
     if (!m) return null;
     return m[2] || m[1] === "2160" ? "4k" : m[1] === "576" || m[1] === "480" ? "sd" : m[1];
   }
+  // Códec de vídeo de una versión ("… mkv (x265-FLAC AC3)") o de un archivo del servidor
+  const normCodec = (c) => {
+    c = String(c || "").toLowerCase();
+    return /265|hevc/.test(c) ? "hevc" : /264|avc/.test(c) ? "h264" : /av1/.test(c) ? "av1" : /vp9/.test(c) ? "vp9" : /xvid|divx|mpeg4/.test(c) ? "mpeg4" : "";
+  };
+  const groupCodec = (name) => normCodec(((name || "").match(/\b(x\.?26[45]|h\.?26[45]|hevc|avc|av1|vp9|xvid|divx)\b/i) || [])[0]);
+  const codecLabel = (c) => ({ hevc: "x265", h264: "x264", av1: "AV1", vp9: "VP9", mpeg4: "XviD" }[c] || "");
   const normRes = (r) => {
     r = String(r || "").toLowerCase();
     return r === "2160" || r === "uhd" ? "4k" : r === "480" || r === "576" ? "sd" : r;
@@ -94,7 +101,8 @@
         group: head.replace(/:.*$/, ""),
         ep: parseEpisode(txt(link)),
         size: parseSize(txt(row?.querySelector("td.SIZE"))),
-        res: groupRes(head)
+        res: groupRes(head),
+        codec: groupCodec(head)
       };
     });
   }
@@ -129,9 +137,11 @@
   function verdict(row, files, S, info) {
     if (!files) return { kind: "missing" };
     if (sameFile(row, files)) return { kind: "yes", cls: "hc-plex-yes", text: `✓ En ${S}`, title: `Tienes exactamente este archivo en ${S}` };
-    const resList = [...new Set(files.map((f) => normRes(f.res)).filter(Boolean))];
-    const label = resList.map(resLabel).join(", ");
-    if (row.res && resList.includes(row.res)) {
+    // misma calidad = misma resolución y, si se conoce, mismo códec (x264 ≠ x265)
+    const sameQuality = (f) => normRes(f.res) === row.res && (!row.codec || !normCodec(f.codec) || normCodec(f.codec) === row.codec);
+    const codecDiffers = row.codec && files.some((f) => normRes(f.res) === row.res && normCodec(f.codec) && normCodec(f.codec) !== row.codec);
+    const label = [...new Set(files.map((f) => [resLabel(f.res), codecDiffers ? codecLabel(normCodec(f.codec)) : ""].filter(Boolean).join(" ")).filter(Boolean))].join(", ");
+    if (row.res && files.some(sameQuality)) {
       return { kind: "same", cls: "hc-plex-same", text: `≈ En ${S} (${label})`, title: `Tienes ${what(info)} en ${S} en la misma calidad, pero en otro archivo` };
     }
     return { kind: "other", cls: "hc-plex-other", text: label ? `En ${S} en ${label}` : `En ${S} (otra versión)`, title: `Tienes ${what(info)} en ${S}, pero en otra versión` };
@@ -202,6 +212,10 @@
       const have = vs.filter(({ v }) => v && v.kind !== "missing");
       if (have.length) {
         have.forEach(({ v, p }) => r.link.parentElement.append(badge(v.cls, v.text, v.title, p.res.id)));
+        // lo mejor que tienes de esa fila: yes (este archivo) > same (misma calidad) > other
+        const rank = { yes: 3, same: 2, other: 1 };
+        const best = have.map(({ v }) => v.kind).sort((a, b) => (rank[b] || 0) - (rank[a] || 0))[0];
+        if (r.row) r.row.dataset.uispaHave = best;
       } else if (vs.some(({ v }) => v && v.kind === "missing")) {
         const names = answered.map((p) => p.res.server).join(" ni en ");
         r.link.parentElement.append(badge("hc-plex-no", "Falta", `No está en ${names}`));

@@ -34,7 +34,8 @@
     if (w >= 1200 || h >= 700) return "720";
     return w || h ? "sd" : "";
   }
-  const filesOf = (item) => (item.MediaSources || []).map((s) => ({ size: Number(s.Size) || 0, res: resOf(s) }));
+  const codecOf = (source) => (source.MediaStreams || []).find((s) => s.Type === "Video")?.Codec || "";
+  const filesOf = (item) => (item.MediaSources || []).map((s) => ({ size: Number(s.Size) || 0, res: resOf(s), codec: codecOf(s) }));
 
   const kinds = { show: "Series", movie: "Movie" };
 

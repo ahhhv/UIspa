@@ -28,10 +28,10 @@
 
   const fresh = (entry) => entry && Date.now() - entry.at < TTL;
 
-  // Archivos de un elemento: solo tamaño exacto y resolución (no se envían
-  // rutas de tu servidor a la página)
+  // Archivos de un elemento: solo tamaño exacto, resolución y códec (no se
+  // envían rutas de tu servidor a la página)
   const filesOf = (m) => (m.Media || []).flatMap((x) =>
-    (x.Part || []).map((p) => ({ size: Number(p.size) || 0, res: x.videoResolution || "" })));
+    (x.Part || []).map((p) => ({ size: Number(p.size) || 0, res: x.videoResolution || "", codec: x.videoCodec || "" })));
 
   async function sections(cfg) {
     if (fresh(mem.sections)) return mem.sections.data;

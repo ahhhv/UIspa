@@ -524,6 +524,8 @@ html.hcm .hcm-ver-have:empty { display: none; }
 html.hcm .hcm-ver-have { flex: none; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
 html.hcm .hcm-ver-have.hcm-have-all { color: var(--good-ink); border-color: currentColor; }
 html.hcm .hcm-ver-have.hcm-have-some { color: var(--mid-ink); border-color: currentColor; }
+html.hcm .hcm-ver-have.hcm-have-other { color: #8ab8ff; border-color: currentColor; }
+html.hcm.hcm-light .hcm-ver-have.hcm-have-other { color: #1f5fbf; }
 html.hcm .hcm-ver-body { display: none; padding: 0 20px 18px; box-sizing: border-box; }
 html.hcm .hcm-ver-open .hcm-ver-body { display: block; }
 html.hcm .hcm-ver-open .hcm-ver-head { border-bottom: 1px solid var(--border); margin-bottom: 14px; }

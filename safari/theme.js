@@ -710,12 +710,20 @@
       for (const v of foldable) {
         const rows = $$("table.T2 tr", v.body).filter((r) => $("a[href*='Download(']", r));
         const missing = rows.filter((r) => r.dataset.uispaMissing === "1").length;
+        // yes = este mismo archivo, same = misma calidad (otro archivo), other = otra calidad
+        const exact = rows.filter((r) => r.dataset.uispaHave === "yes").length;
+        const sameQ = rows.filter((r) => r.dataset.uispaHave === "same").length;
         const box = v.head.querySelector(".hcm-ver-have");
         box.textContent = "";
         box.className = "hcm-ver-have";
-        if (!missing) { box.textContent = "✓ Tienes todos"; box.classList.add("hcm-have-all"); }
-        else if (missing === rows.length) { box.textContent = "No la tienes"; box.classList.add("hcm-have-none"); }
-        else { box.textContent = `Te faltan ${missing}`; box.classList.add("hcm-have-some"); }
+        box.title = "";
+        const set = (text, cls, title = "") => { box.textContent = text; box.classList.add(cls); box.title = title; };
+        if (missing === rows.length) set("No la tienes", "hcm-have-none");
+        else if (missing) set(`Te faltan ${missing}`, "hcm-have-some", "Capítulos que no tienes en ninguna calidad");
+        else if (exact === rows.length) set("✓ Tienes esta versión", "hcm-have-all", "Tienes estos mismos archivos");
+        else if (exact + sameQ === rows.length) set("✓ Misma calidad", "hcm-have-all", "Tienes todos los capítulos en esta calidad, aunque no exactamente estos archivos");
+        else if (exact + sameQ) set(`En otra calidad: ${rows.length - exact - sameQ}`, "hcm-have-other", "Tienes todos los capítulos, pero algunos en otra calidad");
+        else set("Tienes otra calidad", "hcm-have-other", "Tienes todos los capítulos, pero en otra versión");
       }
       // en las pestañas, un punto si en esa temporada falta algo
       tabs?.querySelectorAll("button[data-s]").forEach((b) => {
