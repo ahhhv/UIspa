@@ -1,6 +1,6 @@
 # UIspa
 
-Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hispashare](https://www.hispashare.org) un diseño más limpio y moderno, facilita copiar los enlaces ed2k o enviarlos a Synology Download Station y, si quieres, te dice qué tienes ya en tu servidor Plex o Jellyfin.
+Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hispashare](https://www.hispashare.org) un diseño más limpio y moderno, facilita copiar los enlaces ed2k o enviarlos a Synology Download Station, te deja guardar tus favoritos, te avisa de cuándo salen los próximos capítulos y, si quieres, te dice qué tienes ya en tu servidor Plex o Jellyfin.
 
 > Proyecto no oficial. No tiene relación con Hispashare: solo cambia cómo se ve la web en tu navegador y no aloja ni distribuye ningún contenido.
 
@@ -27,8 +27,8 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 - Al enviar eliges la carpeta navegando por las carpetas del NAS, o escribiéndola. Se abre en la última que usaste, tienes atajos a la carpeta por defecto y a las recientes, y puedes crear carpetas nuevas.
 
 **Favoritos**
-- Botón **☆ Favorito** en cada ficha y una estrella ☆ en las carátulas de la portada (al pasar el ratón).
-- Arriba de la portada, la fila **«★ Tus favoritos»** con sus carátulas.
+- Botón **☆ Añadir a favoritos** en cada ficha (pasa a **★ En favoritos**, en dorado) y una estrella ☆ en las carátulas de la portada al pasar el ratón.
+- Arriba de la portada, un panel destacado **«Tus favoritos»** con sus carátulas, el tipo y el año, y flechas para recorrerlos si hay muchos. Los que tienen novedades salen primero.
 - Una vez al día, al abrir la portada, UIspa mira si tus favoritos tienen versiones o capítulos nuevos y los marca como **nuevo** («nueva versión», «+2 archivos») hasta que abres su ficha.
 - Tú eliges dónde se guardan: **en tu cuenta del navegador** (Firefox o Google), para verlos en todos tus ordenadores, o **solo en este navegador**. Al cambiar de opción se mueven solos. En los ajustes también puedes verlos, quitarlos, exportarlos e importarlos.
 
@@ -136,6 +136,17 @@ Requiere DSM 7 con Download Station.
    - **Usuario y contraseña** del usuario que has creado.
    - **Carpeta por defecto:** opcional, por ejemplo `docker/data`.
 3. Pulsa **Guardar** y recarga Hispashare: aparecerán los botones 📥.
+
+## Favoritos
+
+1. Marca una película o serie con **☆ Añadir a favoritos** en su ficha, o con la ☆ que aparece al pasar el ratón por su carátula en la portada.
+2. En la portada (primera página de Novedades) verás el panel **«Tus favoritos»**. Para quitar uno, pulsa su ★.
+3. En los ajustes, sección **Favoritos**, puedes:
+   - elegir **dónde se guardan**: en tu cuenta del navegador (sincronizados entre ordenadores) o solo en este navegador. Al cambiar, se mueven solos;
+   - activar o desactivar el **aviso de novedades** (se comprueba una vez al día al abrir la portada);
+   - ver la lista, quitar favoritos, **exportarlos** a un archivo o **importarlos**.
+
+En Firefox, para que se sincronicen entre ordenadores tienes que tener activada la sincronización de complementos en tu cuenta de Firefox.
 
 ## Privacidad
 
