@@ -26,6 +26,12 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 - Botón 📥 junto a cada capítulo o archivo, y «📥 Al NAS (seleccionados / todos)» en cada versión.
 - Al enviar eliges la carpeta navegando por las carpetas del NAS, o escribiéndola. Se abre en la última que usaste, tienes atajos a la carpeta por defecto y a las recientes, y puedes crear carpetas nuevas.
 
+**Calendario de capítulos**
+- En las fichas de series, debajo de la última temporada aparecen en gris los capítulos que aún no están en Hispashare, con su fecha de emisión («mar 10 nov», «emitido mié 28 oct · aún no subido», «fecha por confirmar»).
+- Junto al título se indica cuándo sale el próximo capítulo o el estreno de la siguiente temporada, o si la serie ha terminado.
+- Funciona sin configurar nada, con las fechas de TVmaze. Si añades en los ajustes una clave gratuita de TMDb, se usa TMDb y verás también los títulos de los capítulos en castellano. Se puede desactivar.
+- Las fechas son las de la emisión original (normalmente en EE. UU.), no las del doblaje.
+
 **Plex o Jellyfin (opcional)**
 - En cada ficha marca qué episodios o películas tienes ya en tu servidor Plex, en Jellyfin o en los dos a la vez (una marca por servidor, en su color).
 - Distingue qué versión tienes comparando el tamaño exacto de tus archivos:
@@ -93,6 +99,10 @@ Pulsa el botón ◐ de la barra superior de Hispashare (o ve a la sección **Apa
 
 ## Conectar con Plex o Jellyfin
 
+Lo más fácil es el **asistente de configuración**: se abre solo al instalar UIspa y, después, desde el botón **Asistente de configuración** al principio de los ajustes. Te guía paso a paso por la apariencia, Plex o Jellyfin, el NAS y el calendario, y en cada paso puedes probar la conexión u omitirlo.
+
+Si prefieres hacerlo a mano:
+
 1. Abre los ajustes de UIspa de cualquiera de estas formas:
    - En Hispashare, menú **Más → ⚙ Ajustes de la extensión**.
    - **Chrome:** clic derecho en el icono de UIspa → **Opciones**.
@@ -124,7 +134,7 @@ Requiere DSM 7 con Download Station.
 ## Privacidad
 
 - UIspa no recoge ni envía datos a ningún servidor propio ni de terceros. En Firefox lo declara así en su instalación (`data_collection_permissions: none`).
-- Solo se comunica con Hispashare, para obtener los enlaces que ya ofrece la web, y con tu servidor Plex o Jellyfin y tu NAS Synology si los configuras.
+- Solo se comunica con Hispashare, para obtener los enlaces que ya ofrece la web, con tu servidor Plex o Jellyfin y tu NAS Synology si los configuras, y con TVmaze o TMDb para el calendario de capítulos (solo se envía el código de IMDb de la serie; puedes desactivarlo).
 - Las direcciones, credenciales y contraseñas se guardan únicamente en tu navegador; la contraseña del NAS viaja en el cuerpo de la petición, nunca en la dirección. Las consultas salen de la extensión, no de la página, así que la web nunca las ve. Del servidor solo se usan el tamaño y la resolución de los archivos, nunca sus rutas.
 
 ## Permisos
@@ -158,8 +168,10 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 | `background.js` | Segundo plano: atajos y menús |
 | `media-bg.js`, `plex-bg.js`, `jellyfin-bg.js` | Consultas al servidor multimedia |
 | `synology-bg.js` | Envío de enlaces a Download Station y exploración de carpetas |
+| `calendar.js`, `calendar-bg.js` | Calendario de capítulos (TVmaze o TMDb) |
+| `setup-bg.js` | Abre el asistente de configuración al instalar |
 | `offscreen.html`, `offscreen.js` | Solo Chrome: copia al portapapeles desde segundo plano |
-| `options.html`, `options.js`, `options.css` | Página de ajustes |
+| `options.html`, `options.js`, `options.css` | Página de ajustes y asistente de configuración |
 
 ## Limitaciones
 
@@ -167,6 +179,10 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 - La coincidencia exacta con el servidor se basa en el tamaño que muestra la web, redondeado a dos decimales. Si renombras o recomprimes un archivo, aparecerá como «≈» u «otra calidad».
 
 ## Novedades
+
+**3.4.0**
+- **Calendario de capítulos:** en las fichas de series, los próximos capítulos en gris con su fecha de emisión, y junto al título cuándo sale el siguiente. Usa TVmaze sin configurar nada, o TMDb (con títulos en castellano) si pones tu clave en los ajustes.
+- **Asistente de configuración:** se abre al instalar y desde los ajustes; guía paso a paso por la apariencia, Plex o Jellyfin, el NAS y el calendario.
 
 **3.3.0**
 - Nuevas tarjetas en la portada, idea y diseño de MrUriosXD: datos sobre la carátula, color e icono por tipo, etiqueta de temporada y géneros en chips. Con el tema claro, el degradado es blanco y el texto oscuro.
@@ -229,7 +245,7 @@ El código común (rediseño, botones y marcas) es idéntico en las tres carpeta
 1. Sube el número de versión en `chrome/manifest.json`, `firefox/manifest.json` y `safari/manifest.json`.
 2. Empaqueta Firefox: comprime el **contenido** de `firefox/` (no la carpeta) en un `.xpi`. Súbelo a firmar en [addons.mozilla.org](https://addons.mozilla.org/developers/) → UIspa → **Upload a New Version**, y descarga el firmado.
 3. Empaqueta Chrome: comprime la carpeta `chrome/` renombrada a `UIspa` como `UIspa-chrome.zip`.
-4. Crea una Release con la etiqueta `X.Y.Z` (sin «v», por ejemplo `3.3.0`) y adjunta `UIspa-chrome.zip` y el firmado renombrado a `UIspa-firefox.xpi`.
+4. Crea una Release con la etiqueta `X.Y.Z` (sin «v», por ejemplo `3.4.0`) y adjunta `UIspa-chrome.zip` y el firmado renombrado a `UIspa-firefox.xpi`.
 5. Añade la versión a `updates.json`, con el enlace a esa Release. Hasta que no lo hagas, Firefox no la instalará automáticamente.
 
 ## Licencia

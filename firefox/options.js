@@ -239,3 +239,159 @@ async function saveLook() {
 }
 for (const id of ["lookTheme", "lookSize", "lookTitleSize", "lookInfinite"]) $(id).addEventListener("change", saveLook);
 loadLook();
+
+// ------------------------------------------------------------ calendario de capítulos
+{
+  const st = $("calStatus");
+  const calSay = (msg, cls = "") => { st.className = cls; st.textContent = msg; };
+  let savedKey = "";
+
+  $("calOn").addEventListener("change", async (e) => {
+    if (e.target.checked) await api.storage.local.remove("calOff");
+    else await api.storage.local.set({ calOff: true });
+    calSay(e.target.checked ? "Calendario activado." : "Calendario desactivado.", "ok");
+  });
+  $("tmdbShow").addEventListener("click", () => {
+    $("tmdbKey").type = $("tmdbKey").type === "password" ? "text" : "password";
+  });
+  async function test(key) {
+    calSay("Comprobando la clave…");
+    const r = await api.runtime.sendMessage({ action: "cal-test", key });
+    if (!r?.ok) { calSay(r?.error || "No se pudo comprobar la clave.", "err"); return false; }
+    calSay("La clave de TMDb funciona.", "ok");
+    return true;
+  }
+  $("tmdbTest").addEventListener("click", () => test($("tmdbKey").value));
+  $("tmdbSave").addEventListener("click", async () => {
+    const key = $("tmdbKey").value.trim();
+    if (!key) { calSay("Escribe la clave o pulsa «Quitar clave» para usar TVmaze.", "err"); return; }
+    if (!(await test(key))) return;
+    await api.storage.local.set({ tmdbKey: key });
+    savedKey = key;
+    calSay("Guardado. Las fichas de series mostrarán fechas y títulos de TMDb.", "ok");
+  });
+  $("tmdbClear").addEventListener("click", async () => {
+    await api.storage.local.remove("tmdbKey");
+    savedKey = "";
+    $("tmdbKey").value = "";
+    calSay("Clave quitada. Las fechas vendrán de TVmaze.");
+  });
+  api.storage.local.get(["calOff", "tmdbKey"]).then((s) => {
+    $("calOn").checked = !s.calOff;
+    if (s.tmdbKey) { savedKey = s.tmdbKey; $("tmdbKey").value = s.tmdbKey; calSay("Usando TMDb con tu clave.", "ok"); }
+  });
+  globalThis.__calDirty = () => $("tmdbKey").value.trim() !== savedKey && !!$("tmdbKey").value.trim();
+}
+
+// ------------------------------------------------------------ asistente de configuración
+// Muestra las secciones de una en una. «Siguiente» guarda lo que hayas escrito
+// en ese paso (con su prueba de conexión) antes de avanzar.
+{
+  const STEPS = [
+    { id: "sec-welcome", name: "Bienvenida", intro: "" },
+    { id: "sec-look", name: "Apariencia", intro: "Elige cómo quieres ver Hispashare. Se guarda al momento." },
+    { id: "sec-media", name: "Plex / Jellyfin", intro: "Si tienes Plex o Jellyfin, conéctalo para ver en cada ficha qué ya tienes. Puedes configurar los dos (pestañas). Si no usas ninguno, pulsa Omitir.",
+      dirty: () => {
+        const s = SERVERS[current()];
+        const url = $("url").value.trim(), token = $("token").value.trim();
+        return !!(url && token) && (url !== (stored[s.urlKey] || "") || token !== (stored[s.tokenKey] || ""));
+      }, save: "save", status: "status" },
+    { id: "sec-nas", name: "NAS", intro: "Si tienes un Synology con Download Station, conéctalo para mandar descargas con 📥. Sigue los pasos de «¿Cómo lo preparo en el NAS?». Si no, pulsa Omitir.",
+      dirty: () => !!($("dsUrl").value.trim() && $("dsUser").value.trim() && $("dsPass").value) && !nasSaved(), save: "dsSave", status: "dsStatus" },
+    { id: "sec-cal", name: "Calendario", intro: "Las fechas de los próximos capítulos funcionan ya, sin configurar nada. La clave de TMDb es opcional: solo añade los títulos en castellano.",
+      dirty: () => globalThis.__calDirty?.(), save: "tmdbSave", status: "calStatus" },
+    { id: "sec-done", name: "Listo", intro: "" }
+  ];
+  let step = 0, nasStored = {};
+  const nasSaved = () => $("dsUrl").value.trim() === (nasStored.dsUrl || "") && $("dsUser").value.trim() === (nasStored.dsUser || "") && $("dsPass").value === (nasStored.dsPass || "");
+  const refreshNas = () => api.storage.local.get(["dsUrl", "dsUser", "dsPass"]).then((s) => { nasStored = s; });
+  refreshNas();
+
+  const all = () => [...document.querySelectorAll("main > section")];
+  function render() {
+    const cur = STEPS[step];
+    all().forEach((sec) => (sec.hidden = sec.id !== cur.id));
+    const ol = $("wizSteps");
+    ol.textContent = "";
+    STEPS.forEach((s, i) => {
+      const li = document.createElement("li");
+      li.textContent = s.name;
+      li.className = i < step ? "done" : i === step ? "on" : "";
+      ol.append(li);
+    });
+    $("wizIntro").textContent = cur.intro;
+    $("wizIntro").hidden = !cur.intro;
+    $("wizBack").hidden = step === 0;
+    $("wizSkip").hidden = !cur.save;
+    $("wizNext").textContent = step === 0 ? "Empezar →" : step === STEPS.length - 1 ? "Cerrar" : "Siguiente →";
+    if (cur.id === "sec-done") summary();
+    // en el asistente, la ayuda de cada paso se muestra abierta
+    document.querySelectorAll(`#${cur.id} details`).forEach((d) => (d.open = true));
+    window.scrollTo({ top: 0 });
+  }
+  async function summary() {
+    const s = await api.storage.local.get(["plexUrl", "plexToken", "jfUrl", "jfKey", "dsUrl", "dsUser", "dsPass", "tmdbKey", "calOff", "look"]);
+    const ul = $("wizSummary");
+    ul.textContent = "";
+    const theme = { dark: "oscuro", light: "claro", auto: "automático" }[s.look?.theme || "dark"];
+    const items = [
+      `Tema ${theme}.`,
+      s.plexUrl && s.plexToken ? "✓ Plex conectado." : "Plex: sin configurar.",
+      s.jfUrl && s.jfKey ? "✓ Jellyfin conectado." : "Jellyfin: sin configurar.",
+      s.dsUrl && s.dsUser && s.dsPass ? "✓ NAS conectado (botones 📥)." : "NAS: sin configurar.",
+      s.calOff ? "Calendario de capítulos desactivado." : s.tmdbKey ? "✓ Calendario con TMDb (títulos en castellano)." : "✓ Calendario con fechas de TVmaze."
+    ];
+    for (const t of items) { const li = document.createElement("li"); li.textContent = t; ul.append(li); }
+  }
+  // Espera a que el estado de la sección termine (ok / err) tras pulsar Guardar
+  function waitStatus(id) {
+    const el = $(id);
+    return new Promise((resolve) => {
+      const t0 = Date.now();
+      const tick = () => {
+        const done = /\b(ok|err)\b/.test(el.className) && !/…$/.test(el.textContent.trim());
+        if (done) return resolve(el.className.includes("ok"));
+        if (Date.now() - t0 > 25000) return resolve(false);
+        setTimeout(tick, 150);
+      };
+      setTimeout(tick, 150);
+    });
+  }
+  function open() {
+    document.body.classList.add("wizard");
+    $("wizBar").hidden = $("wizNav").hidden = false;
+    $("wizStart").hidden = true;
+    step = 0;
+    render();
+  }
+  function close() {
+    document.body.classList.remove("wizard");
+    $("wizBar").hidden = $("wizNav").hidden = true;
+    $("wizStart").hidden = false;
+    all().forEach((sec) => (sec.hidden = sec.classList.contains("wiz-only")));
+    if (location.hash) history.replaceState(null, "", location.pathname);
+  }
+  $("wizOpen").addEventListener("click", open);
+  $("wizBack").addEventListener("click", () => { if (step > 0) { step--; render(); } });
+  $("wizSkip").addEventListener("click", () => { step++; render(); });
+  $("wizNext").addEventListener("click", async () => {
+    const cur = STEPS[step];
+    if (step === STEPS.length - 1) { close(); return; }
+    if (cur.save && cur.dirty?.()) {
+      // se pulsa «Guardar» dentro del mismo clic (los permisos lo necesitan)
+      const st = $(cur.status);
+      st.className = "";
+      $(cur.save).click();
+      const btn = $("wizNext");
+      btn.disabled = true;
+      const ok = await waitStatus(cur.status);
+      btn.disabled = false;
+      if (cur.id === "sec-nas") await refreshNas();
+      if (!ok) return; // se queda en el paso para que veas el error
+    }
+    step++;
+    render();
+  });
+  all().forEach((sec) => { if (sec.classList.contains("wiz-only")) sec.hidden = true; });
+  if (location.hash === "#asistente") open();
+}

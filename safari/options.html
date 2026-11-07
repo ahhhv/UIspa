@@ -9,7 +9,29 @@
 <main>
   <h1 id="title"><span>UI</span>spa · Ajustes</h1>
 
-  <section>
+  <div id="wizStart" class="wiz-start">
+    <span>¿Primera vez o te lías con los ajustes?</span>
+    <button id="wizOpen" type="button">Asistente de configuración</button>
+  </div>
+
+  <!-- Asistente: muestra las secciones de una en una -->
+  <div id="wizBar" class="wiz-bar" hidden>
+    <ol id="wizSteps" class="wiz-steps"></ol>
+    <p id="wizIntro" class="wiz-intro"></p>
+  </div>
+
+  <section id="sec-welcome" class="wiz-only">
+    <h2>Bienvenido a UIspa 👋</h2>
+    <p>UIspa rediseña Hispashare y te deja copiar los enlaces ed2k con un clic. Además puede:</p>
+    <ul>
+      <li>decirte qué capítulos o películas ya tienes en <b>Plex</b> o <b>Jellyfin</b>,</li>
+      <li>mandar descargas a tu <b>NAS Synology</b> (Download Station),</li>
+      <li>mostrar cuándo salen los <b>próximos capítulos</b> de cada serie.</li>
+    </ul>
+    <p class="muted">Todo es opcional: en cada paso puedes pulsar <b>Omitir</b>. Puedes volver a abrir este asistente cuando quieras desde los ajustes.</p>
+  </section>
+
+  <section id="sec-look">
     <h2>Apariencia</h2>
     <p class="muted">También puedes cambiarlo en Hispashare desde el botón ◐ de la barra superior.</p>
     <div class="cols">
@@ -42,7 +64,7 @@
     <div id="lookStatus" role="status" class="muted small"></div>
   </section>
 
-  <section>
+  <section id="sec-media">
     <h2>Servidor multimedia</h2>
     <p class="muted">Si lo configuras, cada ficha de Hispashare te dirá qué episodios o películas ya tienes, y en qué versión. Puedes conectar Plex, Jellyfin o los dos a la vez. Es opcional: sin configurarlo, la extensión funciona igual.</p>
 
@@ -84,7 +106,7 @@
     <p class="muted small">Las credenciales se guardan solo en este navegador y únicamente se envían a tu servidor, nunca a Hispashare ni a ningún otro sitio. Dan acceso a tu servidor: no las compartas.</p>
   </section>
 
-  <section>
+  <section id="sec-nas">
     <h2>Descargas en el NAS (Synology)</h2>
     <p class="muted">Si lo configuras, junto a cada botón de copiar aparecerá 📥 para mandar los enlaces directamente a Download Station, eligiendo la carpeta en cada envío. Necesitas DSM 7 con las descargas eMule activadas en Download Station.</p>
 
@@ -124,6 +146,47 @@
       </ol>
     </details>
   </section>
+
+  <section id="sec-cal">
+    <h2>Calendario de capítulos</h2>
+    <p class="muted">En las fichas de series, UIspa añade en gris los capítulos que aún no están en Hispashare con su fecha de emisión, y arriba indica cuándo sale el siguiente. Funciona sin configurar nada (fechas de TVmaze). Si añades una clave de TMDb, verás también los títulos de los capítulos en castellano.</p>
+    <label class="check"><input id="calOn" type="checkbox" checked> Mostrar el calendario de capítulos</label>
+
+    <label for="tmdbKey">Clave de TMDb <span class="opt">(opcional)</span></label>
+    <div class="row">
+      <input id="tmdbKey" type="password" autocomplete="off" spellcheck="false" placeholder="clave de 32 caracteres o token de lectura">
+      <button id="tmdbShow" type="button" class="ghost" title="Mostrar u ocultar">👁</button>
+    </div>
+    <div class="actions">
+      <button id="tmdbTest" type="button" class="ghost">Probar clave</button>
+      <button id="tmdbSave" type="button">Guardar</button>
+      <button id="tmdbClear" type="button" class="ghost danger">Quitar clave</button>
+    </div>
+    <div id="calStatus" role="status"></div>
+    <details>
+      <summary>¿Cómo consigo una clave de TMDb?</summary>
+      <ol>
+        <li>Crea una cuenta gratuita en <b>themoviedb.org</b>.</li>
+        <li>En los ajustes de tu cuenta, entra en <b>API</b> y solicita una clave para uso personal.</li>
+        <li>Copia la <b>clave de la API</b> (32 caracteres) o el <b>token de acceso de lectura</b> y pégala aquí.</li>
+      </ol>
+    </details>
+    <p class="muted small">La clave se guarda solo en este navegador y únicamente se envía a TMDb. Sin clave, las fechas vienen de TVmaze (licencia CC BY-SA).</p>
+  </section>
+
+  <section id="sec-done" class="wiz-only">
+    <h2>¡Listo! 🎉</h2>
+    <p>Así ha quedado UIspa:</p>
+    <ul id="wizSummary"></ul>
+    <p class="muted">Recarga las pestañas de Hispashare que tengas abiertas para ver los cambios. Puedes cambiar cualquier cosa más tarde en estos ajustes.</p>
+  </section>
+
+  <div id="wizNav" class="wiz-nav" hidden>
+    <button id="wizBack" type="button" class="ghost">← Atrás</button>
+    <span class="wiz-spacer"></span>
+    <button id="wizSkip" type="button" class="ghost">Omitir</button>
+    <button id="wizNext" type="button">Siguiente →</button>
+  </div>
 </main>
 <script src="options.js"></script>
 </body>

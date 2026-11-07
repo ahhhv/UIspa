@@ -56,3 +56,22 @@ select:focus { outline: none; border-color: var(--accent); }
 label.check { display: flex; align-items: center; gap: 8px; font-weight: 500; margin-top: 16px; }
 label.check input { width: auto; accent-color: var(--accent); }
 #lookStatus { margin: 8px 0 0; min-height: 1.5em; }
+#calStatus { margin-top: 14px; font-size: 14px; min-height: 1.5em; }
+#calStatus.ok { color: #7ee787; }
+#calStatus.err { color: #ff9a92; }
+
+/* asistente de configuración */
+.wiz-start { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  background: var(--surface); border: 1px dashed var(--border); border-radius: 14px; padding: 14px 18px; margin-bottom: 20px; color: var(--muted); font-size: 14px; }
+.wiz-start[hidden], .wiz-bar[hidden], .wiz-nav[hidden], section[hidden] { display: none; }
+.wiz-steps { list-style: none; display: flex; gap: 6px; padding: 0; margin: 0 0 14px; flex-wrap: wrap; counter-reset: wiz; }
+.wiz-steps li { counter-increment: wiz; margin: 0; font-size: 13px; color: var(--muted); padding: 4px 10px 4px 6px; border-radius: 999px; background: var(--s2); border: 1px solid var(--border); }
+.wiz-steps li::before { content: counter(wiz); display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: 6px; border-radius: 50%; background: var(--border); color: var(--text); font-size: 11px; font-weight: 700; }
+.wiz-steps li.on { color: #1a1400; background: var(--accent); border-color: var(--accent); font-weight: 600; }
+.wiz-steps li.on::before { background: rgba(26,20,0,.2); color: #1a1400; }
+.wiz-steps li.done::before { content: "✓"; background: #3fb950; color: #fff; }
+.wiz-intro { margin: 0 0 16px; color: var(--text); font-size: 15px; }
+.wiz-nav { position: sticky; bottom: 0; display: flex; gap: 8px; align-items: center; margin-top: 20px; padding: 14px 0; background: linear-gradient(transparent, var(--bg) 30%); }
+.wiz-spacer { flex: 1; }
+body.wizard section details[open] { margin-bottom: 0; }
+#sec-welcome ul, #sec-done ul { padding-left: 20px; }

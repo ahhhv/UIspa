@@ -113,3 +113,22 @@ html.hcm-light a.BUTTON.hc-site-btn.hc-nas { background: rgba(47,116,224,.08) !i
 html.hcm-light .hc-plex-no { color: #5f6878; border-color: #9aa3b4; }
 html.hcm-light .hc-plex-same, html.hcm-light .hc-plex-other, html.hcm-light .hc-plex-part { color: #9a6200; }
 html.hcm-light .hc-plex-same.hc-srv-jellyfin, html.hcm-light .hc-plex-other.hc-srv-jellyfin, html.hcm-light .hc-plex-part.hc-srv-jellyfin { color: #8a3fa6; }
+
+/* ---------------------------------------------------------- calendario de capítulos */
+tr.hc-cal-row td { color: #8a93a3 !important; background: transparent !important; }
+tr.hc-cal-row .hc-cal-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+tr.hc-cal-row .hc-cal-ep { opacity: .85; }
+tr.hc-cal-row .hc-cal-title { font-style: italic; opacity: .8; }
+tr.hc-cal-row .hc-cal-date {
+  font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px;
+  border: 1px dashed currentColor; color: #9aa6ba; white-space: nowrap;
+}
+tr.hc-cal-row .hc-cal-date.hc-cal-aired { color: #d6a04a; }
+tr.hc-cal-credit td { font-size: 11px; opacity: .7; text-align: right; padding-top: 6px !important; border: 0 !important; }
+.hc-plex.hc-cal-hero { color: #9aa6ba; border-color: #4a5260; background: transparent; }
+.hc-plex.hc-cal-next { color: #8ab8ff; border-color: rgba(138, 184, 255, .45); }
+html.hcm-light tr.hc-cal-row td { color: #7a8392 !important; }
+html.hcm-light tr.hc-cal-row .hc-cal-date { color: #6b7686; }
+html.hcm-light tr.hc-cal-row .hc-cal-date.hc-cal-aired { color: #9a6200; }
+html.hcm-light .hc-plex.hc-cal-next { color: #1f5fbf; border-color: rgba(31, 95, 191, .4); }
+html:not(.hcm) tr.hc-cal-row td { color: #888 !important; }
