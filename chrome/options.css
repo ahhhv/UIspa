@@ -75,3 +75,16 @@ label.check input { width: auto; accent-color: var(--accent); }
 .wiz-spacer { flex: 1; }
 body.wizard section details[open] { margin-bottom: 0; }
 #sec-welcome ul, #sec-done ul { padding-left: 20px; }
+
+/* favoritos */
+.fav-list { list-style: none; padding: 0; margin: 16px 0 0; max-height: 320px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+.fav-list li { display: flex; align-items: center; gap: 10px; margin: 0; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.fav-list li:last-child { border-bottom: 0; }
+.fav-list li.muted { display: block; margin: 0; }
+.fav-list a { color: var(--text); text-decoration: none; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fav-list a:hover { color: var(--accent); }
+.fav-new { font-size: 12px; font-weight: 700; color: #1a1400; background: var(--accent); padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.fav-x { padding: 3px 10px; font-size: 12px; }
+#favStatus { margin-top: 14px; font-size: 14px; min-height: 1.5em; }
+#favStatus.ok { color: #7ee787; }
+#favStatus.err { color: #ff9a92; }

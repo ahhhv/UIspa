@@ -552,3 +552,58 @@ html.hcm.hcm-light .media-card .badge-rating { background: rgba(255, 255, 255, .
 html.hcm.hcm-light .media-card .badge-rating.hcm-good { color: #047857; }
 html.hcm.hcm-light .media-card .badge-rating.hcm-mid { color: #9a6700; }
 html.hcm.hcm-light .media-card .badge-rating.hcm-low { color: #b42318; }
+
+/* ---------------------------------------------------------- favoritos */
+html.hcm .hcm-fav-btn {
+  all: unset; cursor: pointer; font-size: 14px; font-weight: 600; padding: 6px 14px; border-radius: 8px;
+  background: var(--tint); border: 1px solid var(--border); color: var(--text);
+}
+html.hcm .hcm-fav-btn:hover { border-color: var(--accent); }
+html.hcm .hcm-fav-btn.hcm-fav-on { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+html.hcm .hcm-fav-btn:focus-visible, html.hcm .hcm-fav-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+html.hcm .hcm-fav-toggle {
+  all: unset; cursor: pointer; position: absolute; z-index: 11; box-sizing: border-box;
+  top: calc(6cqw + 2.4em); right: 6cqw; width: 2.1em; height: 2.1em; display: grid; place-items: center;
+  font-size: calc(clamp(11px, 6.5cqw, 15px)); line-height: 1; border-radius: 50%;
+  color: #fff; background: rgba(10, 15, 26, .6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, .18); opacity: 0; transform: scale(.85);
+  transition: opacity .2s, transform .2s, background .2s;
+}
+html.hcm .media-card:hover .hcm-fav-toggle, html.hcm .hcm-fav-item:hover .hcm-fav-toggle,
+html.hcm .hcm-fav-toggle:focus-visible, html.hcm .hcm-fav-toggle.hcm-fav-on { opacity: 1; transform: none; }
+html.hcm .hcm-fav-toggle.hcm-fav-on { color: #fbbf24; border-color: rgba(251, 191, 36, .5); }
+html.hcm .hcm-fav-toggle:hover { background: rgba(10, 15, 26, .85); }
+
+html.hcm .hcm-favs { margin: 0 0 34px; }
+html.hcm .hcm-favs[hidden] { display: none; }
+html.hcm .hcm-favs-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+html.hcm .hcm-favs-title { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+html.hcm .hcm-favs-count { color: var(--muted); font-size: 14px; }
+html.hcm .hcm-favs-news { font-size: 12px; font-weight: 700; color: #1a1400; background: var(--accent); padding: 2px 9px; border-radius: 999px; }
+html.hcm .hcm-favs-row {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 128px; gap: 14px;
+  overflow-x: auto; padding: 4px 2px 10px; scroll-snap-type: x proximity; scrollbar-width: thin;
+}
+html.hcm .hcm-fav-item { scroll-snap-align: start; display: flex; flex-direction: column; gap: 4px; color: var(--text); text-decoration: none; min-width: 0; }
+html.hcm .hcm-fav-pic {
+  position: relative; aspect-ratio: 2 / 3; border-radius: 12px; overflow: hidden; background: var(--surface-2);
+  border: 2px solid color-mix(in srgb, var(--type-accent, var(--accent)) 45%, transparent); container-type: inline-size;
+  transition: transform .25s, border-color .25s;
+}
+html.hcm .hcm-fav-item[data-type="movie"] { --type-accent: var(--color-movie); }
+html.hcm .hcm-fav-item[data-type="series"] { --type-accent: var(--color-series); }
+html.hcm .hcm-fav-item[data-type="doc"] { --type-accent: var(--color-doc); }
+html.hcm .hcm-fav-item[data-type="music"] { --type-accent: var(--color-music); }
+html.hcm .hcm-fav-item:hover .hcm-fav-pic { transform: translateY(-4px); border-color: var(--type-accent, var(--accent)); }
+html.hcm .hcm-fav-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+html.hcm .hcm-fav-pic .hcm-fav-toggle { top: 6cqw; }
+html.hcm .hcm-fav-badge {
+  position: absolute; left: 6cqw; top: 6cqw; font-size: 11px; font-weight: 800; color: #000; text-transform: lowercase;
+  background: linear-gradient(135deg, #fbbf24, #d97706); padding: 2px 8px; border-radius: 999px;
+}
+html.hcm .hcm-fav-new .hcm-fav-pic { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, .25); }
+html.hcm .hcm-fav-name { font-size: 13px; font-weight: 700; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html.hcm .hcm-fav-what { font-size: 12px; color: var(--muted); }
+html.hcm .hcm-fav-new .hcm-fav-what { color: var(--accent); font-weight: 600; }
+@media (max-width: 600px) { html.hcm .hcm-favs-row { grid-auto-columns: 104px; gap: 10px; } }
+html:not(.hcm) .hcm-fav-btn { margin: 6px 0; cursor: pointer; }

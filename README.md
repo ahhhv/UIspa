@@ -26,6 +26,12 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 - Botón 📥 junto a cada capítulo o archivo, y «📥 Al NAS (seleccionados / todos)» en cada versión.
 - Al enviar eliges la carpeta navegando por las carpetas del NAS, o escribiéndola. Se abre en la última que usaste, tienes atajos a la carpeta por defecto y a las recientes, y puedes crear carpetas nuevas.
 
+**Favoritos**
+- Botón **☆ Favorito** en cada ficha y una estrella ☆ en las carátulas de la portada (al pasar el ratón).
+- Arriba de la portada, la fila **«★ Tus favoritos»** con sus carátulas.
+- Una vez al día, al abrir la portada, UIspa mira si tus favoritos tienen versiones o capítulos nuevos y los marca como **nuevo** («nueva versión», «+2 archivos») hasta que abres su ficha.
+- Se guardan con tu cuenta del navegador (Firefox o Google), así que los ves en todos tus ordenadores. En los ajustes puedes verlos, quitarlos, exportarlos e importarlos.
+
 **Calendario de capítulos**
 - En las fichas de series, debajo de la última temporada aparecen en gris los capítulos que aún no están en Hispashare, con su fecha de emisión («mar 10 nov», «emitido mié 28 oct · aún no subido», «fecha por confirmar»).
 - Junto al título se indica cuándo sale el próximo capítulo o el estreno de la siguiente temporada, o si la serie ha terminado.
@@ -135,6 +141,7 @@ Requiere DSM 7 con Download Station.
 
 - UIspa no recoge ni envía datos a ningún servidor propio ni de terceros. En Firefox lo declara así en su instalación (`data_collection_permissions: none`).
 - Solo se comunica con Hispashare, para obtener los enlaces que ya ofrece la web, con tu servidor Plex o Jellyfin y tu NAS Synology si los configuras, y con TVmaze o TMDb para el calendario de capítulos (solo se envía el código de IMDb de la serie; puedes desactivarlo).
+- Los favoritos se guardan en el almacenamiento sincronizado del navegador: viajan con tu cuenta de Firefox o de Google, no a ningún servidor de UIspa.
 - Las direcciones, credenciales y contraseñas se guardan únicamente en tu navegador; la contraseña del NAS viaja en el cuerpo de la petición, nunca en la dirección. Las consultas salen de la extensión, no de la página, así que la web nunca las ve. Del servidor solo se usan el tamaño y la resolución de los archivos, nunca sus rutas.
 
 ## Permisos
@@ -144,7 +151,7 @@ Requiere DSM 7 con Download Station.
 | Acceso a `hispashare.org` / `hispashare.com` | Aplicar el rediseño y añadir los botones |
 | `clipboardWrite` (y `offscreen` en Chrome) | Copiar enlaces al portapapeles, también desde atajos y menús |
 | `contextMenus` | Opciones del menú del botón derecho |
-| `storage` | Guardar la configuración de los servidores y de la apariencia |
+| `storage` | Guardar la configuración, la apariencia y los favoritos (sincronizados con tu cuenta del navegador) |
 | Acceso opcional a la dirección de tu servidor o NAS | Solo se pide si configuras Plex, Jellyfin o Synology, y únicamente para esa dirección |
 
 ## Estructura
@@ -169,6 +176,7 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 | `media-bg.js`, `plex-bg.js`, `jellyfin-bg.js` | Consultas al servidor multimedia |
 | `synology-bg.js` | Envío de enlaces a Download Station y exploración de carpetas |
 | `calendar.js`, `calendar-bg.js` | Calendario de capítulos (TVmaze o TMDb) |
+| `favorites.js` | Favoritos: estrellas, fila de la portada y aviso de novedades |
 | `setup-bg.js` | Abre el asistente de configuración al instalar |
 | `offscreen.html`, `offscreen.js` | Solo Chrome: copia al portapapeles desde segundo plano |
 | `options.html`, `options.js`, `options.css` | Página de ajustes y asistente de configuración |
@@ -179,6 +187,9 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 - La coincidencia exacta con el servidor se basa en el tamaño que muestra la web, redondeado a dos decimales. Si renombras o recomprimes un archivo, aparecerá como «≈» u «otra calidad».
 
 ## Novedades
+
+**3.5.0**
+- **Favoritos:** marca películas y series con ☆ en su ficha o en las carátulas; aparecen arriba en la portada, con aviso de versiones o capítulos nuevos. Se sincronizan con tu cuenta del navegador y se pueden exportar e importar.
 
 **3.4.0**
 - **Calendario de capítulos:** en las fichas de series, los próximos capítulos en gris con su fecha de emisión, y junto al título cuándo sale el siguiente. Usa TVmaze sin configurar nada, o TMDb (con títulos en castellano) si pones tu clave en los ajustes.
@@ -245,7 +256,7 @@ El código común (rediseño, botones y marcas) es idéntico en las tres carpeta
 1. Sube el número de versión en `chrome/manifest.json`, `firefox/manifest.json` y `safari/manifest.json`.
 2. Empaqueta Firefox: comprime el **contenido** de `firefox/` (no la carpeta) en un `.xpi`. Súbelo a firmar en [addons.mozilla.org](https://addons.mozilla.org/developers/) → UIspa → **Upload a New Version**, y descarga el firmado.
 3. Empaqueta Chrome: comprime la carpeta `chrome/` renombrada a `UIspa` como `UIspa-chrome.zip`.
-4. Crea una Release con la etiqueta `X.Y.Z` (sin «v», por ejemplo `3.4.0`) y adjunta `UIspa-chrome.zip` y el firmado renombrado a `UIspa-firefox.xpi`.
+4. Crea una Release con la etiqueta `X.Y.Z` (sin «v», por ejemplo `3.5.0`) y adjunta `UIspa-chrome.zip` y el firmado renombrado a `UIspa-firefox.xpi`.
 5. Añade la versión a `updates.json`, con el enlace a esa Release. Hasta que no lo hagas, Firefox no la instalará automáticamente.
 
 ## Licencia

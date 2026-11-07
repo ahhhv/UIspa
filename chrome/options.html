@@ -174,6 +174,20 @@
     <p class="muted small">La clave se guarda solo en este navegador y únicamente se envía a TMDb. Sin clave, las fechas vienen de TVmaze (licencia CC BY-SA).</p>
   </section>
 
+  <section id="sec-favs">
+    <h2>Favoritos</h2>
+    <p class="muted">Marca películas y series con ☆ en su ficha o en las carátulas de la portada; aparecen arriba del todo en la portada. Se guardan con tu cuenta del navegador (Firefox o Google), así que los verás en todos tus ordenadores.</p>
+    <label class="check"><input id="favCheck" type="checkbox" checked> Avisar de versiones o capítulos nuevos en mis favoritos (se comprueba una vez al día al abrir la portada)</label>
+    <ul id="favList" class="fav-list"></ul>
+    <div class="actions">
+      <button id="favExport" type="button" class="ghost">Exportar</button>
+      <button id="favImport" type="button" class="ghost">Importar…</button>
+      <input id="favFile" type="file" accept="application/json,.json" hidden>
+      <button id="favClear" type="button" class="ghost danger">Borrar todos</button>
+    </div>
+    <div id="favStatus" role="status"></div>
+  </section>
+
   <section id="sec-done" class="wiz-only">
     <h2>¡Listo! 🎉</h2>
     <p>Así ha quedado UIspa:</p>

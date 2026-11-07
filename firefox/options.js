@@ -395,3 +395,92 @@ loadLook();
   all().forEach((sec) => { if (sec.classList.contains("wiz-only")) sec.hidden = true; });
   if (location.hash === "#asistente") open();
 }
+
+// ------------------------------------------------------------ favoritos
+{
+  let area = api.storage.sync || api.storage.local;
+  const PREFIX = "fav:";
+  const st = $("favStatus");
+  const favSay = (msg, cls = "") => { st.className = cls; st.textContent = msg; };
+  async function all() {
+    let items;
+    try { items = await area.get(null); } catch (_) { area = api.storage.local; items = await area.get(null); }
+    return Object.entries(items || {}).filter(([k, v]) => k.startsWith(PREFIX) && v?.id).map(([, v]) => v)
+      .sort((a, b) => (b.added || 0) - (a.added || 0));
+  }
+  async function render() {
+    const list = await all();
+    const ul = $("favList");
+    ul.textContent = "";
+    if (!list.length) {
+      const li = document.createElement("li");
+      li.className = "muted";
+      li.textContent = "Todavía no tienes favoritos.";
+      ul.append(li);
+    }
+    for (const f of list) {
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      a.href = "https://www.hispashare.org" + f.url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = f.title + (f.year ? ` (${f.year})` : "");
+      li.append(a);
+      if (f.news) { const n = document.createElement("span"); n.className = "fav-new"; n.textContent = f.news; li.append(n); }
+      const x = document.createElement("button");
+      x.type = "button"; x.className = "ghost fav-x"; x.textContent = "Quitar"; x.title = "Quitar de favoritos";
+      x.addEventListener("click", async () => { await area.remove(PREFIX + f.id); render(); });
+      li.append(x);
+      ul.append(li);
+    }
+    $("favClear").disabled = $("favExport").disabled = !list.length;
+  }
+  $("favCheck").addEventListener("change", async (e) => {
+    if (e.target.checked) await api.storage.local.remove("favCheckOff");
+    else await api.storage.local.set({ favCheckOff: true });
+  });
+  $("favExport").addEventListener("click", async () => {
+    const list = await all();
+    const blob = new Blob([JSON.stringify({ uispa: "favoritos", version: 1, items: list }, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "uispa-favoritos.json";
+    document.body.append(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    favSay(`Exportados ${list.length} favoritos.`, "ok");
+  });
+  $("favImport").addEventListener("click", () => $("favFile").click());
+  $("favFile").addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      const items = (Array.isArray(data) ? data : data.items || []).filter((f) => f && /^\d+$/.test(String(f.id)) && f.title && /^\/?\?view=title&id=\d+/.test(String(f.url || "").replace(/^\/(index\.php)?/, "/")));
+      if (!items.length) { favSay("El archivo no tiene favoritos de UIspa.", "err"); return; }
+      const clean = items.map((f) => ({
+        id: String(f.id), url: String(f.url), title: String(f.title).slice(0, 200), year: String(f.year || "").slice(0, 4),
+        poster: /^https?:\/\//.test(f.poster || "") ? String(f.poster).slice(0, 500) : "",
+        type: ["movie", "series", "doc", "music"].includes(f.type) ? f.type : "movie",
+        added: Number(f.added) || Date.now(), seen: "", sig: "", checked: 0, news: null
+      }));
+      await area.set(Object.fromEntries(clean.map((f) => [PREFIX + f.id, f])));
+      favSay(`Importados ${clean.length} favoritos.`, "ok");
+      render();
+    } catch (err) {
+      favSay("No se pudo leer el archivo: " + err.message, "err");
+    }
+  });
+  $("favClear").addEventListener("click", async () => {
+    const list = await all();
+    if (!list.length) return;
+    if (!confirm(`¿Borrar tus ${list.length} favoritos?`)) return;
+    await area.remove(list.map((f) => PREFIX + f.id));
+    favSay("Favoritos borrados.");
+    render();
+  });
+  api.storage.local.get("favCheckOff").then((s) => { $("favCheck").checked = !s.favCheckOff; });
+  api.storage.onChanged.addListener((changes) => { if (Object.keys(changes).some((k) => k.startsWith(PREFIX))) render(); });
+  render();
+}
