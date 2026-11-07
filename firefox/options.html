@@ -176,7 +176,14 @@
 
   <section id="sec-favs">
     <h2>Favoritos</h2>
-    <p class="muted">Marca películas y series con ☆ en su ficha o en las carátulas de la portada; aparecen arriba del todo en la portada. Se guardan con tu cuenta del navegador (Firefox o Google), así que los verás en todos tus ordenadores.</p>
+    <p class="muted">Marca películas y series con ☆ en su ficha o en las carátulas de la portada; aparecen arriba del todo en la portada.</p>
+    <label>¿Dónde se guardan?</label>
+    <div class="choice" role="radiogroup" aria-label="Dónde se guardan los favoritos">
+      <label class="choice-opt"><input type="radio" name="favArea" value="sync" checked>
+        <span><b>En mi cuenta del navegador</b><small>Se sincronizan con tu cuenta de Firefox o de Google y los ves en todos tus ordenadores.</small></span></label>
+      <label class="choice-opt"><input type="radio" name="favArea" value="local">
+        <span><b>Solo en este navegador</b><small>No salen de este ordenador. Si cambias de navegador, puedes llevártelos con Exportar e Importar.</small></span></label>
+    </div>
     <label class="check"><input id="favCheck" type="checkbox" checked> Avisar de versiones o capítulos nuevos en mis favoritos (se comprueba una vez al día al abrir la portada)</label>
     <ul id="favList" class="fav-list"></ul>
     <div class="actions">

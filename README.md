@@ -30,7 +30,7 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 - Botón **☆ Favorito** en cada ficha y una estrella ☆ en las carátulas de la portada (al pasar el ratón).
 - Arriba de la portada, la fila **«★ Tus favoritos»** con sus carátulas.
 - Una vez al día, al abrir la portada, UIspa mira si tus favoritos tienen versiones o capítulos nuevos y los marca como **nuevo** («nueva versión», «+2 archivos») hasta que abres su ficha.
-- Se guardan con tu cuenta del navegador (Firefox o Google), así que los ves en todos tus ordenadores. En los ajustes puedes verlos, quitarlos, exportarlos e importarlos.
+- Tú eliges dónde se guardan: **en tu cuenta del navegador** (Firefox o Google), para verlos en todos tus ordenadores, o **solo en este navegador**. Al cambiar de opción se mueven solos. En los ajustes también puedes verlos, quitarlos, exportarlos e importarlos.
 
 **Calendario de capítulos**
 - En las fichas de series, debajo de la última temporada aparecen en gris los capítulos que aún no están en Hispashare, con su fecha de emisión («mar 10 nov», «emitido mié 28 oct · aún no subido», «fecha por confirmar»).
@@ -141,7 +141,7 @@ Requiere DSM 7 con Download Station.
 
 - UIspa no recoge ni envía datos a ningún servidor propio ni de terceros. En Firefox lo declara así en su instalación (`data_collection_permissions: none`).
 - Solo se comunica con Hispashare, para obtener los enlaces que ya ofrece la web, con tu servidor Plex o Jellyfin y tu NAS Synology si los configuras, y con TVmaze o TMDb para el calendario de capítulos (solo se envía el código de IMDb de la serie; puedes desactivarlo).
-- Los favoritos se guardan en el almacenamiento sincronizado del navegador: viajan con tu cuenta de Firefox o de Google, no a ningún servidor de UIspa.
+- Los favoritos se guardan donde elijas: en el almacenamiento sincronizado del navegador (viajan con tu cuenta de Firefox o de Google) o solo en tu navegador. Nunca van a ningún servidor de UIspa.
 - Las direcciones, credenciales y contraseñas se guardan únicamente en tu navegador; la contraseña del NAS viaja en el cuerpo de la petición, nunca en la dirección. Las consultas salen de la extensión, no de la página, así que la web nunca las ve. Del servidor solo se usan el tamaño y la resolución de los archivos, nunca sus rutas.
 
 ## Permisos
@@ -151,7 +151,7 @@ Requiere DSM 7 con Download Station.
 | Acceso a `hispashare.org` / `hispashare.com` | Aplicar el rediseño y añadir los botones |
 | `clipboardWrite` (y `offscreen` en Chrome) | Copiar enlaces al portapapeles, también desde atajos y menús |
 | `contextMenus` | Opciones del menú del botón derecho |
-| `storage` | Guardar la configuración, la apariencia y los favoritos (sincronizados con tu cuenta del navegador) |
+| `storage` | Guardar la configuración, la apariencia y los favoritos (en tu navegador o sincronizados con tu cuenta, según elijas) |
 | Acceso opcional a la dirección de tu servidor o NAS | Solo se pide si configuras Plex, Jellyfin o Synology, y únicamente para esa dirección |
 
 ## Estructura
@@ -189,7 +189,7 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 ## Novedades
 
 **3.5.0**
-- **Favoritos:** marca películas y series con ☆ en su ficha o en las carátulas; aparecen arriba en la portada, con aviso de versiones o capítulos nuevos. Se sincronizan con tu cuenta del navegador y se pueden exportar e importar.
+- **Favoritos:** marca películas y series con ☆ en su ficha o en las carátulas; aparecen en un panel destacado arriba de la portada, con aviso de versiones o capítulos nuevos. Eliges si guardarlos en tu cuenta del navegador (sincronizados) o solo en este navegador, y se pueden exportar e importar.
 
 **3.4.0**
 - **Calendario de capítulos:** en las fichas de series, los próximos capítulos en gris con su fecha de emisión, y junto al título cuándo sale el siguiente. Usa TVmaze sin configurar nada, o TMDb (con títulos en castellano) si pones tu clave en los ajustes.

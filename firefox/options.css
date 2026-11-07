@@ -88,3 +88,10 @@ body.wizard section details[open] { margin-bottom: 0; }
 #favStatus { margin-top: 14px; font-size: 14px; min-height: 1.5em; }
 #favStatus.ok { color: #7ee787; }
 #favStatus.err { color: #ff9a92; }
+.choice { display: grid; gap: 8px; }
+.choice-opt { display: flex; gap: 12px; align-items: flex-start; margin: 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--s2); cursor: pointer; font-weight: 400; }
+.choice-opt input { width: auto; margin-top: 3px; accent-color: var(--accent); }
+.choice-opt b { display: block; font-size: 14px; }
+.choice-opt small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+.choice-opt:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--s2)); }
+.choice-opt:has(input:disabled) { opacity: .5; cursor: not-allowed; }

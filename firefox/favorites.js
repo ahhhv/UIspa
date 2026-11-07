@@ -21,14 +21,23 @@
   const redesign = () => html.classList.contains("hcm") && !!$("#hcm-root");
 
   // ------------------------------------------------------------ almacenamiento
-  // Una clave por favorito ("fav:123"): storage.sync limita el tamaño de cada clave
-  let area = api.storage.sync || api.storage.local;
+  // Una clave por favorito ("fav:123"): storage.sync limita el tamaño de cada clave.
+  // Dónde se guardan lo eliges en los ajustes: en tu cuenta del navegador
+  // (sincronizado, por defecto) o solo en este navegador.
+  let area = api.storage.local, areaName = "local";
   const PREFIX = "fav:";
   let favs = {};                                    // id → favorito
+  async function pickArea() {
+    const { favArea } = await api.storage.local.get("favArea");
+    const sync = favArea !== "local" && api.storage.sync;
+    area = sync ? api.storage.sync : api.storage.local;
+    areaName = sync ? "sync" : "local";
+  }
   async function load() {
+    await pickArea();
     let all;
     try { all = await area.get(null); }
-    catch (_) { area = api.storage.local; all = await area.get(null); }
+    catch (_) { area = api.storage.local; areaName = "local"; all = await area.get(null); }
     favs = {};
     for (const [k, v] of Object.entries(all || {})) if (k.startsWith(PREFIX) && v?.id) favs[v.id] = v;
   }
@@ -71,9 +80,14 @@
       b.classList.toggle("hcm-fav-on", on);
       b.title = on ? "Quitar de favoritos" : "Añadir a favoritos";
       b.setAttribute("aria-pressed", String(on));
-      b.dataset.label = on ? "★ Favorito" : "☆ Favorito";
-      b.textContent = cls.includes("hcm-fav-btn") ? b.dataset.label : on ? "★" : "☆";
+      if (cls.includes("hcm-fav-btn")) {
+        b.textContent = "";
+        b.append(h("span", "hcm-fav-ico", on ? "★" : "☆"), h("span", "hcm-fav-txt", on ? "En favoritos" : "Añadir a favoritos"));
+      } else {
+        b.textContent = on ? "★" : "☆";
+      }
     };
+    const pop = () => { b.classList.remove("hcm-fav-pop"); void b.offsetWidth; b.classList.add("hcm-fav-pop"); };
     b.addEventListener("click", async (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -86,6 +100,7 @@
         favs[id] = f;
         await save([f]);
         toast("★ Añadido a favoritos");
+        pop();
       }
       refreshAll();
     });
@@ -164,12 +179,22 @@
       (toolbar || grid).before(row);
     }
     row.hidden = !list.length;
+    const keep = row.querySelector(".hcm-favs-row")?.scrollLeft || 0;
     row.textContent = "";
     if (!list.length) return;
-    const head = h("div", "hcm-favs-head");
-    head.append(h("h2", "hcm-favs-title", "★ Tus favoritos"), h("span", "hcm-favs-count", String(list.length)));
     const news = list.filter((f) => f.news).length;
-    if (news) head.append(h("span", "hcm-favs-news", `${news} con novedades`));
+    const head = h("div", "hcm-favs-head");
+    const titles = h("div", "hcm-favs-titles");
+    titles.append(h("h2", "hcm-favs-title", "Tus favoritos"),
+      h("span", "hcm-favs-sub", `${list.length} ${list.length === 1 ? "título" : "títulos"}${news ? "" : " · sin novedades"}`));
+    head.append(h("span", "hcm-favs-star", "★"), titles);
+    if (news) head.append(h("span", "hcm-favs-news", `✨ ${news} con novedades`));
+    const nav = h("div", "hcm-favs-nav");
+    const prev = h("button", "hcm-favs-arrow", "‹"), next = h("button", "hcm-favs-arrow", "›");
+    prev.type = next.type = "button";
+    prev.title = "Anteriores"; next.title = "Siguientes";
+    nav.append(prev, next);
+    head.append(nav);
     const strip = h("div", "hcm-favs-row");
     for (const f of list) {
       const a = h("a", "hcm-fav-item" + (f.news ? " hcm-fav-new" : ""));
@@ -179,14 +204,30 @@
       const pic = h("div", "hcm-fav-pic");
       if (f.poster) { const img = h("img"); img.src = f.poster; img.alt = ""; img.loading = "lazy"; pic.append(img); }
       if (f.news) pic.append(h("span", "hcm-fav-badge", "nuevo"));
-      const star = starButton("hcm-fav-toggle", f.id, () => f);
-      pic.append(star);
-      a.append(pic, h("span", "hcm-fav-name", f.title));
-      if (f.news) a.append(h("span", "hcm-fav-what", f.news));
-      else if (f.year) a.append(h("span", "hcm-fav-what", f.year));
+      pic.append(starButton("hcm-fav-toggle", f.id, () => f));
+      const cap = h("div", "hcm-fav-cap");
+      cap.append(h("span", "hcm-fav-name", f.title));
+      cap.append(h("span", "hcm-fav-what", f.news || [{ movie: "Película", series: "Serie", doc: "Documental", music: "Música" }[f.type], f.year].filter(Boolean).join(" · ")));
+      pic.append(cap);
+      a.append(pic);
       strip.append(a);
     }
     row.append(head, strip);
+    strip.scrollLeft = keep;
+    const step = () => Math.max(200, strip.clientWidth * 0.8);
+    prev.addEventListener("click", () => strip.scrollBy({ left: -step(), behavior: "smooth" }));
+    next.addEventListener("click", () => strip.scrollBy({ left: step(), behavior: "smooth" }));
+    const arrows = () => {
+      const over = strip.scrollWidth > strip.clientWidth + 4;
+      nav.hidden = !over;
+      prev.disabled = strip.scrollLeft < 4;
+      next.disabled = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 4;
+      strip.classList.toggle("hcm-at-end", !over || next.disabled);
+    };
+    strip.addEventListener("scroll", arrows, { passive: true });
+    row.__arrows = arrows;
+    if (!row.__resize) { row.__resize = true; addEventListener("resize", () => row.__arrows?.(), { passive: true }); }
+    requestAnimationFrame(arrows);
   }
 
   // ------------------------------------------------------------ novedades (una vez al día)
@@ -232,8 +273,9 @@
     checkNews();
   }
   // cambios desde otra pestaña, otro ordenador o los ajustes
-  api.storage.onChanged.addListener((changes) => {
-    if (!Object.keys(changes).some((k) => k.startsWith(PREFIX))) return;
+  api.storage.onChanged.addListener(async (changes, where) => {
+    if (where === "local" && changes.favArea) { await load(); refreshAll(); return; }
+    if (where !== areaName || !Object.keys(changes).some((k) => k.startsWith(PREFIX))) return;
     for (const [k, c] of Object.entries(changes)) {
       if (!k.startsWith(PREFIX)) continue;
       const id = k.slice(PREFIX.length);

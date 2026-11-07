@@ -398,11 +398,15 @@ loadLook();
 
 // ------------------------------------------------------------ favoritos
 {
-  let area = api.storage.sync || api.storage.local;
+  let area = api.storage.local;
   const PREFIX = "fav:";
   const st = $("favStatus");
   const favSay = (msg, cls = "") => { st.className = cls; st.textContent = msg; };
+  const areaOf = (name) => (name === "local" || !api.storage.sync ? api.storage.local : api.storage.sync);
+  const readFavs = async (a) => Object.entries((await a.get(null)) || {}).filter(([k, v]) => k.startsWith(PREFIX) && v?.id);
   async function all() {
+    const { favArea } = await api.storage.local.get("favArea");
+    area = areaOf(favArea);
     let items;
     try { items = await area.get(null); } catch (_) { area = api.storage.local; items = await area.get(null); }
     return Object.entries(items || {}).filter(([k, v]) => k.startsWith(PREFIX) && v?.id).map(([, v]) => v)
@@ -480,7 +484,37 @@ loadLook();
     favSay("Favoritos borrados.");
     render();
   });
-  api.storage.local.get("favCheckOff").then((s) => { $("favCheck").checked = !s.favCheckOff; });
+  // Cambiar dónde se guardan: se mueven los favoritos de un sitio al otro
+  if (!api.storage.sync) {
+    document.querySelector("input[name=favArea][value=sync]").disabled = true;
+    document.querySelector("input[name=favArea][value=local]").checked = true;
+  }
+  document.querySelectorAll("input[name=favArea]").forEach((r) => r.addEventListener("change", async () => {
+    const to = r.value;
+    const { favArea } = await api.storage.local.get("favArea");
+    const from = favArea === "local" ? "local" : "sync";
+    if (to === from) return;
+    try {
+      const items = await readFavs(areaOf(from));
+      if (items.length) {
+        await areaOf(to).set(Object.fromEntries(items));
+        await areaOf(from).remove(items.map(([k]) => k));
+      }
+      await api.storage.local.set({ favArea: to });
+      favSay(items.length
+        ? `${items.length} favoritos movidos ${to === "sync" ? "a tu cuenta del navegador" : "a este navegador"}.`
+        : `Los favoritos se guardarán ${to === "sync" ? "en tu cuenta del navegador" : "solo en este navegador"}.`, "ok");
+      render();
+    } catch (e) {
+      favSay("No se pudieron mover los favoritos: " + e.message, "err");
+      document.querySelector(`input[name=favArea][value=${from}]`).checked = true;
+    }
+  }));
+  api.storage.local.get(["favCheckOff", "favArea"]).then((s) => {
+    $("favCheck").checked = !s.favCheckOff;
+    const v = s.favArea === "local" || !api.storage.sync ? "local" : "sync";
+    document.querySelector(`input[name=favArea][value=${v}]`).checked = true;
+  });
   api.storage.onChanged.addListener((changes) => { if (Object.keys(changes).some((k) => k.startsWith(PREFIX))) render(); });
   render();
 }
