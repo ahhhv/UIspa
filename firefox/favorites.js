@@ -163,9 +163,12 @@
   }
 
   // ------------------------------------------------------------ fila de favoritos (portada)
+  // Portada = sin parámetros, o solo «page=1». Se lee el texto de la dirección:
+  // en Firefox, los iteradores de URLSearchParams no se pueden recorrer desde
+  // una extensión («p.keys() is not iterable»).
   const isHome = () => {
-    const p = new URLSearchParams(location.search);
-    return [...p.keys()].every((k) => k === "page") && (p.get("page") || "1") === "1" && /^\/(index\.php)?$/.test(location.pathname);
+    const parts = location.search.replace(/^\?/, "").split("&").filter(Boolean);
+    return /^\/(index\.php)?$/.test(location.pathname) && parts.every((x) => x === "page=1");
   };
   let row;
   function renderRow() {
