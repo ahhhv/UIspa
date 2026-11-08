@@ -693,7 +693,8 @@
       for (const v of versions) v.tr.hidden = !visible(v);
       tabs?.querySelectorAll("button").forEach((b) => b.classList.toggle("hcm-on", String(current) === b.dataset.s));
       const shown = foldable.filter(visible);
-      if (shown.length === 1 && !shown[0].touched) setOpen(shown[0], true);
+      // las versiones visibles se muestran desplegadas (salvo las que hayas plegado tú)
+      for (const v of shown) if (!v.touched) setOpen(v, true);
     }
     if (all.length >= 2) {
       tabs = h("div", { class: "hcm-seasons", role: "tablist" },

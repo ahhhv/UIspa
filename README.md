@@ -11,7 +11,7 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 - Portada y búsquedas en cuadrícula de carátulas, con el título, la nota, el año y los géneros sobre la propia carátula. El borde y la etiqueta de cada tarjeta indican el tipo con su color e icono (película, serie, documental o música), y las temporadas salen como etiqueta aparte («Temp. 1 a 4»). Las carátulas y el texto pueden ser pequeños, medianos o grandes.
 - Scroll infinito: al llegar al final se cargan más títulos sin cambiar de página (se puede desactivar y volver a la paginación).
 - Ficha de cada título con la carátula grande, notas de IMDb y usuarios, ficha técnica, sinopsis y reparto, y los comentarios justo debajo.
-- Descargas ordenadas: cada versión aparece plegada con un resumen (archivos, tamaño total, calidad, ripeador y fecha) y se abre con un clic. En series con varias temporadas, pestañas para ver solo una.
+- Descargas ordenadas: cada versión aparece con un resumen (archivos, tamaño total, calidad, ripeador y fecha) y se puede plegar o desplegar con un clic; al entrar salen desplegadas. En series con varias temporadas, pestañas para ver solo una.
 - Diseño adaptable a pantallas pequeñas y texto ampliado.
 - Botón ◐ de la barra: tema, tamaño de carátulas, scroll infinito y volver al diseño original.
 
@@ -193,7 +193,7 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 ## Novedades
 
 **3.6.0**
-- Al abrir la ficha de una serie con varias temporadas, se muestra directamente la última.
+- Al abrir la ficha de una serie con varias temporadas, se muestra directamente la última, con sus versiones desplegadas.
 - Las listas de capítulos se ajustan mejor: las columnas extra (por ejemplo, las de administración) ya no separan los botones y casillas del nombre.
 - Se quita el calendario de próximos capítulos (TVmaze / TMDb). Al actualizar se borran sus ajustes, incluida la clave de TMDb si la habías puesto.
 
