@@ -700,7 +700,7 @@
         all.map((n) => h("button", { type: "button", "data-s": String(n), onclick: () => show(n) }, `Temporada ${n}`)),
         h("button", { type: "button", "data-s": "all", onclick: () => show("all") }, "Todas"));
       $(".hcm-h2", sec).after(tabs);
-      show(all[0]);
+      show(all[all.length - 1]);   // se abre en la última temporada
     } else {
       show("all");
     }

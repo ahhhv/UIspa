@@ -307,6 +307,10 @@ html.hcm .hcm-elinks table.T2 th.SIZE, html.hcm .hcm-elinks table.T2 td.SIZE { t
 html.hcm .hcm-elinks table.T2 td { padding: 8px; border-bottom: 1px solid var(--tint-2); background: none !important; font-size: 14px; }
 html.hcm .hcm-elinks table.T2 tr:hover td { background: var(--tint-2) !important; }
 html.hcm .hcm-elinks table.T2 td.ICON { width: 28px; }
+/* Todas las columnas se ajustan a su contenido y el nombre ocupa el resto
+   (los administradores tienen columnas extra de borrar y editar) */
+html.hcm .hcm-elinks table.T2 td { width: 1%; white-space: nowrap; }
+html.hcm .hcm-elinks table.T2 td:has(a[href^="javascript:Download("]) { width: auto; white-space: normal; }
 html.hcm .hcm-elinks table.T2 input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
 html.hcm .hcm-elinks table.T3 { border-collapse: collapse; margin-top: 12px; font-size: 13px; color: var(--muted); background: none !important; }
 html.hcm .hcm-elinks table.T3 td { padding: 3px 12px 3px 0; background: none !important; }

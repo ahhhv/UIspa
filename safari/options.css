@@ -56,9 +56,6 @@ select:focus { outline: none; border-color: var(--accent); }
 label.check { display: flex; align-items: center; gap: 8px; font-weight: 500; margin-top: 16px; }
 label.check input { width: auto; accent-color: var(--accent); }
 #lookStatus { margin: 8px 0 0; min-height: 1.5em; }
-#calStatus { margin-top: 14px; font-size: 14px; min-height: 1.5em; }
-#calStatus.ok { color: #7ee787; }
-#calStatus.err { color: #ff9a92; }
 
 /* asistente de configuración */
 .wiz-start { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;

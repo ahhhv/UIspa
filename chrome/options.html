@@ -26,7 +26,7 @@
     <ul>
       <li>decirte qué capítulos o películas ya tienes en <b>Plex</b> o <b>Jellyfin</b>,</li>
       <li>mandar descargas a tu <b>NAS Synology</b> (Download Station),</li>
-      <li>mostrar cuándo salen los <b>próximos capítulos</b> de cada serie.</li>
+      <li>guardar tus <b>favoritos</b> y avisarte de sus novedades.</li>
     </ul>
     <p class="muted">Todo es opcional: en cada paso puedes pulsar <b>Omitir</b>. Puedes volver a abrir este asistente cuando quieras desde los ajustes.</p>
   </section>
@@ -147,32 +147,6 @@
     </details>
   </section>
 
-  <section id="sec-cal">
-    <h2>Calendario de capítulos</h2>
-    <p class="muted">En las fichas de series, UIspa añade en gris los capítulos que aún no están en Hispashare con su fecha de emisión, y arriba indica cuándo sale el siguiente. Funciona sin configurar nada (fechas de TVmaze). Si añades una clave de TMDb, verás también los títulos de los capítulos en castellano.</p>
-    <label class="check"><input id="calOn" type="checkbox" checked> Mostrar el calendario de capítulos</label>
-
-    <label for="tmdbKey">Clave de TMDb <span class="opt">(opcional)</span></label>
-    <div class="row">
-      <input id="tmdbKey" type="password" autocomplete="off" spellcheck="false" placeholder="clave de 32 caracteres o token de lectura">
-      <button id="tmdbShow" type="button" class="ghost" title="Mostrar u ocultar">👁</button>
-    </div>
-    <div class="actions">
-      <button id="tmdbTest" type="button" class="ghost">Probar clave</button>
-      <button id="tmdbSave" type="button">Guardar</button>
-      <button id="tmdbClear" type="button" class="ghost danger">Quitar clave</button>
-    </div>
-    <div id="calStatus" role="status"></div>
-    <details>
-      <summary>¿Cómo consigo una clave de TMDb?</summary>
-      <ol>
-        <li>Crea una cuenta gratuita en <b>themoviedb.org</b>.</li>
-        <li>En los ajustes de tu cuenta, entra en <b>API</b> y solicita una clave para uso personal.</li>
-        <li>Copia la <b>clave de la API</b> (32 caracteres) o el <b>token de acceso de lectura</b> y pégala aquí.</li>
-      </ol>
-    </details>
-    <p class="muted small">La clave se guarda solo en este navegador y únicamente se envía a TMDb. Sin clave, las fechas vienen de TVmaze (licencia CC BY-SA).</p>
-  </section>
 
   <section id="sec-favs">
     <h2>Favoritos</h2>

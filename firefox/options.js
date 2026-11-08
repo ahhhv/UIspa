@@ -240,48 +240,6 @@ async function saveLook() {
 for (const id of ["lookTheme", "lookSize", "lookTitleSize", "lookInfinite"]) $(id).addEventListener("change", saveLook);
 loadLook();
 
-// ------------------------------------------------------------ calendario de capítulos
-{
-  const st = $("calStatus");
-  const calSay = (msg, cls = "") => { st.className = cls; st.textContent = msg; };
-  let savedKey = "";
-
-  $("calOn").addEventListener("change", async (e) => {
-    if (e.target.checked) await api.storage.local.remove("calOff");
-    else await api.storage.local.set({ calOff: true });
-    calSay(e.target.checked ? "Calendario activado." : "Calendario desactivado.", "ok");
-  });
-  $("tmdbShow").addEventListener("click", () => {
-    $("tmdbKey").type = $("tmdbKey").type === "password" ? "text" : "password";
-  });
-  async function test(key) {
-    calSay("Comprobando la clave…");
-    const r = await api.runtime.sendMessage({ action: "cal-test", key });
-    if (!r?.ok) { calSay(r?.error || "No se pudo comprobar la clave.", "err"); return false; }
-    calSay("La clave de TMDb funciona.", "ok");
-    return true;
-  }
-  $("tmdbTest").addEventListener("click", () => test($("tmdbKey").value));
-  $("tmdbSave").addEventListener("click", async () => {
-    const key = $("tmdbKey").value.trim();
-    if (!key) { calSay("Escribe la clave o pulsa «Quitar clave» para usar TVmaze.", "err"); return; }
-    if (!(await test(key))) return;
-    await api.storage.local.set({ tmdbKey: key });
-    savedKey = key;
-    calSay("Guardado. Las fichas de series mostrarán fechas y títulos de TMDb.", "ok");
-  });
-  $("tmdbClear").addEventListener("click", async () => {
-    await api.storage.local.remove("tmdbKey");
-    savedKey = "";
-    $("tmdbKey").value = "";
-    calSay("Clave quitada. Las fechas vendrán de TVmaze.");
-  });
-  api.storage.local.get(["calOff", "tmdbKey"]).then((s) => {
-    $("calOn").checked = !s.calOff;
-    if (s.tmdbKey) { savedKey = s.tmdbKey; $("tmdbKey").value = s.tmdbKey; calSay("Usando TMDb con tu clave.", "ok"); }
-  });
-  globalThis.__calDirty = () => $("tmdbKey").value.trim() !== savedKey && !!$("tmdbKey").value.trim();
-}
 
 // ------------------------------------------------------------ asistente de configuración
 // Muestra las secciones de una en una. «Siguiente» guarda lo que hayas escrito
@@ -298,8 +256,6 @@ loadLook();
       }, save: "save", status: "status" },
     { id: "sec-nas", name: "NAS", intro: "Si tienes un Synology con Download Station, conéctalo para mandar descargas con 📥. Sigue los pasos de «¿Cómo lo preparo en el NAS?». Si no, pulsa Omitir.",
       dirty: () => !!($("dsUrl").value.trim() && $("dsUser").value.trim() && $("dsPass").value) && !nasSaved(), save: "dsSave", status: "dsStatus" },
-    { id: "sec-cal", name: "Calendario", intro: "Las fechas de los próximos capítulos funcionan ya, sin configurar nada. La clave de TMDb es opcional: solo añade los títulos en castellano.",
-      dirty: () => globalThis.__calDirty?.(), save: "tmdbSave", status: "calStatus" },
     { id: "sec-done", name: "Listo", intro: "" }
   ];
   let step = 0, nasStored = {};
@@ -330,7 +286,7 @@ loadLook();
     window.scrollTo({ top: 0 });
   }
   async function summary() {
-    const s = await api.storage.local.get(["plexUrl", "plexToken", "jfUrl", "jfKey", "dsUrl", "dsUser", "dsPass", "tmdbKey", "calOff", "look"]);
+    const s = await api.storage.local.get(["plexUrl", "plexToken", "jfUrl", "jfKey", "dsUrl", "dsUser", "dsPass", "look"]);
     const ul = $("wizSummary");
     ul.textContent = "";
     const theme = { dark: "oscuro", light: "claro", auto: "automático" }[s.look?.theme || "dark"];
@@ -338,8 +294,7 @@ loadLook();
       `Tema ${theme}.`,
       s.plexUrl && s.plexToken ? "✓ Plex conectado." : "Plex: sin configurar.",
       s.jfUrl && s.jfKey ? "✓ Jellyfin conectado." : "Jellyfin: sin configurar.",
-      s.dsUrl && s.dsUser && s.dsPass ? "✓ NAS conectado (botones 📥)." : "NAS: sin configurar.",
-      s.calOff ? "Calendario de capítulos desactivado." : s.tmdbKey ? "✓ Calendario con TMDb (títulos en castellano)." : "✓ Calendario con fechas de TVmaze."
+      s.dsUrl && s.dsUser && s.dsPass ? "✓ NAS conectado (botones 📥)." : "NAS: sin configurar."
     ];
     for (const t of items) { const li = document.createElement("li"); li.textContent = t; ul.append(li); }
   }
