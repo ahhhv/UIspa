@@ -217,12 +217,12 @@
     // Botones del grupo
     const buttons = [];
     if (hasChecks) {
-      buttons.push(makeSiteButton("📋 Copiar seleccionados", "Copiar los enlaces marcados de esta versión",
+      buttons.push(makeSiteButton("Seleccionados", "Copiar los enlaces marcados de esta versión",
         (b) => copyGroup(g, b, "sel", "seleccionados")));
     }
     buttons.push(g.count === 1
       ? makeSiteButton("📋 Copiar enlace", "Copiar el enlace ed2k de esta versión", (b) => copyGroup(g, b, "all", ""))
-      : makeSiteButton("📋 Copiar todos", "Copiar todos los enlaces ed2k de esta versión", (b) => copyGroup(g, b, "all", "toda la versión")));
+      : makeSiteButton("Todos", "Copiar todos los enlaces ed2k de esta versión", (b) => copyGroup(g, b, "all", "toda la versión")));
     for (const b of buttons) {
       b.addEventListener("pointerenter", warm);
       b.addEventListener("focus", warm);
@@ -470,12 +470,12 @@
     nasDone.add(g.id);
     const hasChecks = g.rows.some((r) => document.getElementById(`elink_${g.id}_${r.i}`));
     const buttons = [];
-    if (hasChecks) buttons.push(makeSiteButton("📥 Al NAS (seleccionados)", "Enviar los capítulos marcados a Download Station", (b) => sendToNas(g, b, "sel")));
+    if (hasChecks) buttons.push(makeSiteButton("Seleccionados", "Enviar los capítulos marcados a Download Station", (b) => sendToNas(g, b, "sel")));
     buttons.push(g.count === 1
       ? makeSiteButton("📥 Enviar al NAS", "Enviar a Download Station", (b) => sendToNas(g, b, "all"))
-      : makeSiteButton("📥 Al NAS (todos)", "Enviar todos los enlaces de esta versión a Download Station", (b) => sendToNas(g, b, "all")));
+      : makeSiteButton("Todos", "Enviar todos los enlaces de esta versión a Download Station", (b) => sendToNas(g, b, "all")));
     buttons.forEach((b) => b.classList.add("hc-nas"));
-    (ui.missingCopy || ui.last).after(...buttons.flatMap((b) => [document.createTextNode(" "), b]));
+    (ui.lastEmule || ui.missingCopy || ui.last).after(...buttons.flatMap((b) => [document.createTextNode(" "), b]));
     ui.lastNas = buttons[buttons.length - 1];
     for (const { i } of g.rows) {
       const copy = ui.rows.get(i);
@@ -501,25 +501,134 @@
     const useful = n > 0 && n < g.rows.length;
     const warm = () => prefetch(g);
     if (useful && !ui.missingCopy) {
-      ui.missingCopy = makeSiteButton("📋 Copiar los que faltan", "Copiar solo los capítulos que no tienes en tu servidor",
+      ui.missingCopy = makeSiteButton("Los que faltan", "Copiar solo los capítulos que no tienes en tu servidor",
         (b) => copyGroup(g, b, "missing", "los que faltan"));
       ui.missingCopy.classList.add("hc-missing");
       ui.missingCopy.addEventListener("pointerenter", warm);
       ui.last.after(document.createTextNode(" "), ui.missingCopy);
     }
     if (useful && nasOn && ui.lastNas && !ui.missingNas) {
-      ui.missingNas = makeSiteButton("📥 Al NAS (los que faltan)", "Enviar a Download Station solo los capítulos que no tienes",
+      ui.missingNas = makeSiteButton("Los que faltan", "Enviar a Download Station solo los capítulos que no tienes",
         (b) => sendToNas(g, b, "missing"));
       ui.missingNas.classList.add("hc-nas", "hc-missing");
       ui.missingNas.addEventListener("pointerenter", warm);
       ui.lastNas.after(document.createTextNode(" "), ui.missingNas);
     }
-    const labels = [[ui.missingCopy, `📋 Copiar los que faltan (${n})`], [ui.missingNas, `📥 Al NAS (faltan ${n})`]];
+    const labels = [[ui.missingCopy, `Los que faltan (${n})`], [ui.missingNas, `Los que faltan (${n})`]];
     for (const [b, label] of labels) {
       if (!b) continue;
       b.hidden = !useful;
       const c = b.querySelector(".C");
       if (c && useful) c.textContent = label;
+    }
+  }
+
+  // ---------------------------------------------------------------- eMule
+  // Los enlaces se abren con location.href = "ed2k://…", como hace la web.
+  // Chrome (y Brave, Edge…) no acepta las «|» en una dirección: con las barras
+  // codificadas (%7C) sí los pasa, y eMule los entiende. Firefox, tal cual.
+  const ed2kRawOk = (() => {
+    try { new URL("ed2k://|file|a|1|00000000000000000000000000000000|/"); return true; } catch (_) { return false; }
+  })();
+  const isFirefox = /Firefox\//.test(navigator.userAgent);
+  const encodeEd2k = !ed2kRawOk && !isFirefox;
+  const forEmule = (l) => (encodeEd2k ? l.replace(/\|/g, "%7C") : l);
+  let emuleJob = null;   // { links, i, label, original, onDone }
+
+  // Chrome tiene una protección contra avalanchas: tras abrir un programa
+  // externo no deja abrir otro hasta el siguiente clic... o hasta la siguiente
+  // llamada a la API de extensiones, que también lo vuelve a permitir
+  // (ExternalProtocolHandler::PermitLaunchUrl). Por eso, antes de cada enlace se
+  // hace una lectura cualquiera del almacenamiento de la extensión.
+  async function emuleRun() {
+    const job = emuleJob;
+    if (!job) return;
+    const label = (t) => { if (job.label) job.label.textContent = t; };
+    const wait = (ms) => new Promise((ok) => setTimeout(ok, ms));
+    for (; job.i < job.links.length; job.i++) {
+      label(`Enviando a eMule… ${job.i + 1} de ${job.links.length}`);
+      if (encodeEd2k) { try { await api.storage.local.get("emuleOff"); } catch (_) {} }
+      try { location.href = job.links[job.i]; } catch (err) { console.warn("[UIspa] eMule:", err.message); }
+      await wait(encodeEd2k ? 300 : job.i === 0 ? 2000 : 120);
+    }
+    emuleJob = null;
+    label(job.original);
+    toast(job.links.length === 1 ? "Enlace enviado a eMule" : `${job.links.length} enlaces enviados a eMule`);
+    job.onDone?.();
+  }
+  function emuleStart(links, label, onDone) {
+    if (emuleJob) { toast("Ya se están enviando enlaces a eMule"); return; }
+    links = links.filter((l) => /^ed2k:\/\//i.test(l)).map(forEmule);
+    if (!links.length) { toast("No se han encontrado enlaces", true); return; }
+    emuleJob = { links, i: 0, label, original: label?.textContent, onDone };
+    emuleRun();
+  }
+
+  // Botones ▶ eMule de UIspa
+  async function sendToEmule(g, btn, kind) {
+    if (kind === "sel" && !maskSelected(g).includes("1")) { toast("Marca algún capítulo primero", true); return; }
+    const c = getAll(g);
+    let links = c.links ? pick(g, c.links, kind) : null;
+    if (!links) {
+      // aún no estaban los enlaces: se piden ya (el margen de Chrome es corto)
+      try { await c.promise; links = pick(g, c.links, kind) || await fetchLinks(g.id, maskFor(g, kind)); }
+      catch (e) { toast("No se pudieron obtener los enlaces: " + e.message, true); return; }
+    }
+    const label = btn.classList.contains("hc-copy-btn") ? null : btn.querySelector(".C");
+    if (btn.classList.contains("hc-copy-btn")) btn.textContent = "…";
+    emuleStart(links, label, () => {
+      if (btn.classList.contains("hc-copy-btn")) { btn.textContent = "✔"; setTimeout(() => (btn.textContent = "▶"), 1500); }
+    });
+  }
+
+  // Botón «Ejecutar enlaces» de la ventana de la web: en Chrome no funciona,
+  // así que lo hace UIspa (en Firefox se deja el de la web)
+  if (encodeEd2k) {
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest?.('a[onclick*="eMule("]');
+      if (!btn) return;
+      const id = (btn.getAttribute("onclick").match(/eMule\(\s*['"]([^'"]+)['"]/) || [])[1] || "ELINKSLIST";
+      const box = document.getElementById(id);
+      if (!box) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      emuleStart(box.value.split("\n").map((l) => l.trim()), btn.querySelector("#DOWNLOADBUTTON") || btn.querySelector(".C"), () => {
+        const pop = document.getElementById("POP_WIN");
+        if (pop) pop.style.visibility = "hidden";
+      });
+    }, true);
+  }
+
+  // ▶ eMule en cada versión y en cada fila (se pueden ocultar en los ajustes)
+  let emuleOn = false;
+  try {
+    api?.storage?.local?.get("emuleOff")?.then?.((s) => { if (!s?.emuleOff) { emuleOn = true; scan(); } }, () => {});
+  } catch (_) { /* sin almacenamiento: sin botones */ }
+  const emuleDone = new Set();
+  function enhanceEmule(g) {
+    const ui = uiByGroup.get(g.id);
+    if (!emuleOn || !ui || emuleDone.has(g.id)) return;
+    emuleDone.add(g.id);
+    const warm = () => prefetch(g);
+    const hasChecks = g.rows.some((r) => document.getElementById(`elink_${g.id}_${r.i}`));
+    const buttons = [];
+    if (hasChecks) buttons.push(makeSiteButton("Seleccionados", "Abrir en eMule los capítulos marcados", (b) => sendToEmule(g, b, "sel")));
+    buttons.push(g.count === 1
+      ? makeSiteButton("▶ Abrir en eMule", "Abrir el enlace en eMule", (b) => sendToEmule(g, b, "all"))
+      : makeSiteButton("Todos", "Abrir en eMule todos los enlaces de esta versión", (b) => sendToEmule(g, b, "all")));
+    buttons.forEach((b) => { b.classList.add("hc-emule"); b.addEventListener("pointerenter", warm); b.addEventListener("focus", warm); });
+    ui.last.after(...buttons.flatMap((b) => [document.createTextNode(" "), b]));
+    ui.lastEmule = buttons[buttons.length - 1];
+    for (const { i } of g.rows) {
+      const copy = ui.rows.get(i);
+      if (!copy) continue;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "hc-copy-btn hc-emule-btn";
+      b.title = "Abrir en eMule";
+      b.textContent = "▶";
+      b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); sendToEmule(g, b, i); });
+      copy.after(b);
     }
   }
 
@@ -568,8 +677,55 @@
   }
 
   // ---------------------------------------------------------------- arranque
+  // Ordena los botones de cada versión en bloques: los de la web (seleccionar),
+  // copiar, eMule y NAS. Se vuelve a llamar en cada pasada porque los botones
+  // del NAS y «los que faltan» llegan más tarde.
+  const GROUPS = ["site", "copy", "emule", "nas"];
+  const kindOf = (a) => !a.classList.contains("hc-site-btn") ? "site"
+    : a.classList.contains("hc-nas") ? "nas" : a.classList.contains("hc-emule") ? "emule" : "copy";
+  function arrangeBar(g) {
+    const ui = uiByGroup.get(g.id);
+    if (!ui?.last?.isConnected) return;
+    let bar = ui.last.closest(".hc-bar");
+    if (!bar) {
+      const host = ui.last.parentElement;
+      bar = document.createElement("div");
+      bar.className = "hc-bar";
+      // los enlaces se piden en cuanto el ratón se acerca, para que al hacer clic
+      // estén ya listos (eMule en Chrome solo tiene unos segundos tras el clic)
+      bar.addEventListener("pointerenter", () => prefetch(g));
+      for (const k of GROUPS) {
+        const d = document.createElement("div");
+        d.className = "hc-grp hc-grp-" + k;
+        bar.append(d);
+      }
+      (host.querySelector(":scope > a.BUTTON") || ui.last).before(bar);
+    }
+    const loose = [...bar.parentElement.querySelectorAll(":scope > a.BUTTON")];
+    for (const a of [...loose, ...bar.querySelectorAll("a.BUTTON")]) {
+      const grp = bar.querySelector(".hc-grp-" + kindOf(a));
+      if (a.parentElement !== grp) grp.append(a);
+    }
+    // título del bloque cuando tiene varios botones («Copiar: Seleccionados · Todos»)
+    for (const k of GROUPS.slice(1)) {
+      const grp = bar.querySelector(".hc-grp-" + k);
+      const many = grp.querySelectorAll("a.BUTTON").length > 1;
+      let t = grp.querySelector(".hc-grp-t");
+      if (many && !t) {
+        t = document.createElement("span");
+        t.className = "hc-grp-t";
+        t.textContent = { copy: "📋 Copiar", emule: "▶ eMule", nas: "📥 NAS" }[k];
+        grp.prepend(t);
+      }
+      if (t) t.hidden = !many;
+      grp.classList.toggle("hc-grp-box", many);
+    }
+    // espacios sueltos que quedaban entre botones
+    for (const n of [...bar.parentElement.childNodes]) if (n.nodeType === 3 && !n.textContent.trim()) n.remove();
+  }
+
   function scan() {
-    findGroups().forEach((g) => { enhanceGroup(g); enhanceNas(g); enhanceMissing(g); });
+    findGroups().forEach((g) => { enhanceGroup(g); enhanceEmule(g); enhanceNas(g); enhanceMissing(g); arrangeBar(g); });
     enhancePopup();
   }
   scan();

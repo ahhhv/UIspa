@@ -10,20 +10,26 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 - Tema oscuro, claro o automático (como el sistema), con una barra superior compacta: buscador, géneros, «Popular» y tu cuenta.
 - Portada y búsquedas en cuadrícula de carátulas, con el título, la nota, el año y los géneros sobre la propia carátula. El borde y la etiqueta de cada tarjeta indican el tipo con su color e icono (película, serie, documental o música), y las temporadas salen como etiqueta aparte («Temp. 1 a 4»). Las carátulas y el texto pueden ser pequeños, medianos o grandes.
 - Scroll infinito: al llegar al final se cargan más títulos sin cambiar de página (se puede desactivar y volver a la paginación).
-- Ficha de cada título con la carátula grande, notas de IMDb y usuarios, ficha técnica, sinopsis y reparto, y los comentarios justo debajo.
+- Ficha de cada título con la carátula grande, notas de IMDb y usuarios, ficha técnica, sinopsis (con los premios aparte, si los hay) y reparto, y los comentarios justo debajo.
 - Descargas ordenadas: cada versión aparece con un resumen (archivos, tamaño total, calidad, ripeador y fecha) y se puede plegar o desplegar con un clic; al entrar salen desplegadas. En series con varias temporadas, pestañas para ver solo una.
+- Los botones de cada versión van en filas: los de la web, 📋 Copiar, ▶ eMule y 📥 NAS.
 - Diseño adaptable a pantallas pequeñas y texto ampliado.
 - Botón ◐ de la barra: tema, tamaño de carátulas, scroll infinito y volver al diseño original.
 
 **Copiar enlaces**
 - Botón 📋 junto a cada capítulo o archivo.
-- «Copiar seleccionados» y «Copiar todos» en cada versión de una serie; «Copiar enlace» en las películas.
+- «Seleccionados» y «Todos» en cada versión de una serie; «Copiar enlace» en las películas.
 - Botón «Copiar» en la ventana de enlaces de la propia web.
 - Atajos: `Alt+Shift+C` copia todos los enlaces de la página y `Alt+Shift+S` los capítulos marcados. También desde el menú del botón derecho o el icono de la barra.
 - Los atajos se pueden cambiar en `chrome://extensions/shortcuts` (Chrome) o en `about:addons` → rueda dentada ⚙ → **Gestionar atajos de teclado de extensiones** (Firefox).
 
+**Abrir en eMule**
+- Botón ▶ junto a cada capítulo o archivo, y «Seleccionados» / «Todos» en cada versión («Abrir en eMule» en las películas). Se mandan todos de un solo clic.
+- También funciona en Chrome, Brave, Edge y demás navegadores basados en Chromium, incluido el botón «Ejecutar enlaces» de la propia web, que en ellos no hacía nada.
+- Se pueden ocultar en los ajustes (Apariencia).
+
 **Enviar a Synology Download Station (opcional)**
-- Botón 📥 junto a cada capítulo o archivo, y «📥 Al NAS (seleccionados / todos)» en cada versión.
+- Botón 📥 junto a cada capítulo o archivo, y «Seleccionados» / «Todos» en cada versión.
 - Al enviar eliges la carpeta navegando por las carpetas del NAS, o escribiéndola. Se abre en la última que usaste, tienes atajos a la carpeta por defecto y a las recientes, y puedes crear carpetas nuevas.
 
 **Favoritos**
@@ -40,7 +46,7 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
   - **En Plex en 4K**: lo tienes en otra calidad.
   - **Falta**: no lo tienes.
 - Busca cada título por su código de IMDb y, si no, por título y año.
-- **Lo que te falta:** en cada versión de una serie, «📋 Copiar los que faltan» y «📥 Al NAS (faltan N)» copian o envían solo los capítulos que no tienes en ningún servidor. El resumen de cada versión indica si tienes esa misma versión, la misma calidad (misma resolución y códec, x264 / x265), otra calidad o cuántos capítulos te faltan, y las pestañas de temporada marcan con un punto las incompletas.
+- **Lo que te falta:** en cada versión de una serie, «Los que faltan (N)», en Copiar y en NAS, copian o envían solo los capítulos que no tienes en ningún servidor. El resumen de cada versión indica si tienes esa misma versión, la misma calidad (misma resolución y códec, x264 / x265), otra calidad o cuántos capítulos te faltan, y las pestañas de temporada marcan con un punto las incompletas.
 
 ## Instalación
 
@@ -191,6 +197,12 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 - La coincidencia exacta con el servidor se basa en el tamaño que muestra la web, redondeado a dos decimales. Si renombras o recomprimes un archivo, aparecerá como «≈» u «otra calidad».
 
 ## Novedades
+
+**4.0.0**
+- **Enviar a eMule:** botones ▶ en cada capítulo y «Seleccionados» / «Todos» en cada versión, que mandan todos los enlaces de un clic. Funciona también en Chrome y demás navegadores Chromium, incluido el botón «Ejecutar enlaces» de la web. Se pueden ocultar en los ajustes.
+- Los botones de cada versión se ordenan en filas: los de la web, 📋 Copiar, ▶ eMule y 📥 NAS, cada uno con su color.
+- En la ficha, los premios salen aparte de la sinopsis, como en la web original.
+- Arreglado: en series con una temporada en emisión con un solo capítulo no salían las pestañas de temporada.
 
 **3.6.1**
 - Las versiones de la temporada que se muestra salen desplegadas al entrar en la ficha (si pliegas una, se queda plegada).

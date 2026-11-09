@@ -275,6 +275,10 @@ html.hcm .hcm-facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 1
 html.hcm .hcm-facts dt { color: var(--muted); }
 html.hcm .hcm-facts dd { margin: 0; }
 html.hcm .hcm-plot { margin: 0; font-size: 16px; line-height: 1.65; color: var(--plot); max-width: 75ch; }
+html.hcm .hcm-plot + .hcm-plot { margin-top: 8px; }
+html.hcm .hcm-plot-list { margin: 0; padding: 0; list-style: none; color: var(--plot); font-size: 14px; line-height: 1.6; max-width: 75ch; }
+html.hcm .hcm-plot-list li { padding-left: 14px; position: relative; }
+html.hcm .hcm-plot-list li::before { content: "·"; position: absolute; left: 3px; color: var(--accent); font-weight: 700; }
 html.hcm .hcm-block h4 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 html.hcm .hcm-cast { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; }
 html.hcm .hcm-link-btn { all: unset; cursor: pointer; color: var(--accent); font-size: 14px; }

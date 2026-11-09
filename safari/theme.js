@@ -533,6 +533,25 @@
       ["Duración", txt(infoContent(info["Duración"])).replace(/\.$/, "")]
     ].filter(([, v]) => v && (typeof v === "string" ? v : txt(v)));
 
+    // Resumen: a veces trae más apartados dentro («<br><br><b>Premios:</b><br>…»).
+    // Se separa en el texto de la sinopsis y un bloque por apartado, con sus líneas.
+    const plotParts = (el) => {
+      const parts = [{ title: "", lines: [""] }];
+      const add = (t) => { const cur = parts[parts.length - 1]; cur.lines[cur.lines.length - 1] += t; };
+      el.childNodes.forEach((n) => {
+        if (n.nodeName === "BR") parts[parts.length - 1].lines.push("");
+        else if (n.nodeName === "B" || n.nodeName === "STRONG") parts.push({ title: txt(n).replace(/:$/, ""), lines: [""] });
+        else add(n.textContent);
+      });
+      for (const pt of parts) pt.lines = pt.lines.map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+      return parts;
+    };
+    const plot = blocks["Resumen"] ? plotParts(blocks["Resumen"]) : [];
+    const plotEls = plot.flatMap((pt, i) => i === 0
+      ? pt.lines.map((l) => h("p", { class: "hcm-plot" }, l))
+      : pt.lines.length ? [h("div", { class: "hcm-block" }, h("h4", {}, pt.title),
+          h("ul", { class: "hcm-plot-list" }, pt.lines.map((l) => h("li", {}, l))))] : []);
+
     // Reparto: muestra los primeros y permite desplegar el resto
     let cast = null;
     if (blocks["Reparto"]) {
@@ -564,7 +583,7 @@
             voteBtn),
           g.links.length ? h("div", { class: "hcm-chips" }, g.links.map((l) => h("a", { class: "hcm-chip", href: l.href }, l.text))) : null,
           facts.length ? h("dl", { class: "hcm-facts" }, facts.map(([k, v]) => [h("dt", {}, k), h("dd", {}, typeof v === "string" ? v : v.childNodes.length ? [...v.childNodes] : txt(v))])) : null,
-          blocks["Resumen"] ? h("p", { class: "hcm-plot" }, txt(blocks["Resumen"])) : null,
+          plotEls,
           cast,
           extLinks.length ? h("div", { class: "hcm-chips" }, extLinks) : null)));
     hero.querySelector(".hcm-hero-bg").style.backgroundImage = `url("${cover.src}")`;
@@ -632,7 +651,9 @@
       const files = $$("table.T2 tr", v.td).filter((r) => $("a[href*='Download(']", r));
       v.files = files.length;
       v.bytes = files.reduce((n, r) => n + sizeBytes(txt($("td.SIZE", r))), 0);
-      const seasons = new Set(files.map((r) => seasonOf(txt($("a[href*='Download(']", r)))).filter((x) => x != null));
+      // en algunas filas el primer enlace es el icono (sin texto): se usa el del nombre
+      const nameOf = (r) => $$("a[href*='Download(']", r).map(txt).find(Boolean) || "";
+      const seasons = new Set(files.map((r) => seasonOf(nameOf(r))).filter((x) => x != null));
       if (!seasons.size) {
         const m = txt($(".INFOMSG", v.td)).match(/Temporada\s+(\d+)/i);
         if (m) seasons.add(Number(m[1]));
@@ -642,10 +663,12 @@
       v.facts = versionFacts(v.td);
     }
 
-    // Solo se pliegan las versiones con varios archivos (series); las
-    // películas, con un archivo por versión, se dejan como están.
-    const foldable = versions.filter((v) => v.files > 1);
-    if (foldable.length < 2 && versions.every((v) => v.files <= 1)) return;
+    // Solo se pliegan las versiones de las series (varios archivos o capítulos
+    // con temporada, aunque una versión lleve solo uno, p. ej. una temporada
+    // en emisión con el primer capítulo); las películas se dejan como están.
+    const isSeries = versions.some((v) => v.files > 1 || v.seasons.length);
+    if (!isSeries) return;
+    const foldable = versions.filter((v) => v.files > 0);
 
     for (const v of foldable) {
       const h2 = $(":scope > h2", v.td);
@@ -654,7 +677,7 @@
       const f = v.facts;
       const date = (f["eLink puesto"] || "").replace(/\s*\(.*\)\s*$/, "");
       const bits = [
-        `${v.files} archivos`,
+        v.files === 1 ? "1 archivo" : `${v.files} archivos`,
         v.bytes ? fmtSize(v.bytes) : null,
         f["Calidad"] || null,
         f["Ripper"] ? "por " + f["Ripper"] : null,

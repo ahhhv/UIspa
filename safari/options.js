@@ -394,6 +394,11 @@ loadLook();
     }
     $("favClear").disabled = $("favExport").disabled = !list.length;
   }
+  $("emuleBtns").addEventListener("change", async (e) => {
+    if (e.target.checked) await api.storage.local.remove("emuleOff");
+    else await api.storage.local.set({ emuleOff: true });
+  });
+  api.storage.local.get("emuleOff").then((s) => { $("emuleBtns").checked = !s.emuleOff; });
   $("favCheck").addEventListener("change", async (e) => {
     if (e.target.checked) await api.storage.local.remove("favCheckOff");
     else await api.storage.local.set({ favCheckOff: true });
