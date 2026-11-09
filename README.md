@@ -27,11 +27,11 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 - Botón ▶ junto a cada capítulo o archivo, y «Seleccionados» / «Todos» en cada versión («Abrir en eMule» en las películas). Se mandan todos de un solo clic.
 - Con aMule, el sistema tiene que saber abrir los enlaces ed2k con él: en las versiones actuales de aMule se activa en **Preferencias → General** (en Mac, imprescindible).
 - También funciona en Chrome, Brave, Edge y demás navegadores basados en Chromium, incluido el botón «Ejecutar enlaces» de la propia web, que en ellos no hacía nada.
-- Se pueden ocultar en los ajustes (Apariencia).
+- Se pueden ocultar en los ajustes (**Descargas → En este ordenador**).
 
-**aMule remoto (opcional)**
-- Para aMule en Docker, en un NAS o en otro ordenador: botón 🐳 junto a cada capítulo y «Seleccionados» / «Todos» en cada versión. Se mandan todos de golpe, desde cualquier navegador.
-- Se conecta directamente con **aMule 3.1 o posterior** (su interfaz web nueva, amuleapi) o a través de **aMuTorrent**. Puedes elegir la categoría de aMule.
+**Descarga remota (opcional)**
+- Para aMule en Docker, en un NAS o en otro ordenador, aMuTorrent o Rucio: botón 🐳 junto a cada capítulo y «Seleccionados» / «Todos» en cada versión. Se mandan todos de golpe, desde cualquier navegador.
+- Se conecta directamente con **aMule 3.1 o posterior** (su interfaz web nueva, amuleapi), a través de **aMuTorrent** o con **Rucio**. Puedes elegir la categoría.
 
 **Enviar a Synology Download Station (opcional)**
 - Botón 📥 junto a cada capítulo o archivo, y «Seleccionados» / «Todos» en cada versión.
@@ -100,7 +100,7 @@ Limitaciones en Safari: los botones de copiar funcionan igual que en los otros n
 
 ## Apariencia
 
-Pulsa el botón ◐ de la barra superior de Hispashare (o ve a la sección **Apariencia** de los ajustes de UIspa) para elegir:
+Pulsa el botón ◐ de la barra superior de Hispashare (o ve a la pestaña **Apariencia** de los ajustes de UIspa) para elegir:
 
 - **Tema:** oscuro, claro o automático (sigue el de tu sistema).
 - **Carátulas:** pequeñas, medianas o grandes.
@@ -110,7 +110,7 @@ Pulsa el botón ◐ de la barra superior de Hispashare (o ve a la sección **Apa
 
 ## Conectar con Plex o Jellyfin
 
-Lo más fácil es el **asistente de configuración**: se abre solo al instalar UIspa y, después, desde el botón **Asistente de configuración** al principio de los ajustes. Te guía paso a paso por la apariencia, Plex o Jellyfin, y el NAS, y en cada paso puedes probar la conexión u omitirlo.
+Lo más fácil es el **asistente de configuración**: se abre solo al instalar UIspa y, después, desde el botón **Asistente de configuración** al principio de los ajustes. Te guía paso a paso por la apariencia, Plex o Jellyfin, el NAS y la descarga remota, y en cada paso puedes probar la conexión u omitirlo.
 
 Si prefieres hacerlo a mano:
 
@@ -118,7 +118,7 @@ Si prefieres hacerlo a mano:
    - En Hispashare, menú **Más → ⚙ Ajustes de la extensión**.
    - **Chrome:** clic derecho en el icono de UIspa → **Opciones**.
    - **Firefox:** `about:addons` → UIspa → pestaña **Opciones**.
-2. Elige la pestaña **Plex** o **Jellyfin** (puedes configurar los dos; un punto verde indica los conectados) y escribe la dirección de tu servidor, por ejemplo `http://192.168.1.50:32400` (Plex) o `http://192.168.1.50:8096` (Jellyfin).
+2. En la pestaña **Plex / Jellyfin**, elige **Plex** o **Jellyfin** (puedes configurar los dos; un punto verde indica los conectados) y escribe la dirección de tu servidor, por ejemplo `http://192.168.1.50:32400` (Plex) o `http://192.168.1.50:8096` (Jellyfin).
 3. Pega la credencial:
    - **Plex:** tu token. En Plex Web abre cualquier película o episodio → **⋯ → Obtener información → Ver XML** y copia lo que va después de `X-Plex-Token=` en la dirección.
    - **Jellyfin:** una clave de API. Con una cuenta de administrador ve a **Panel de control → Claves de API**, pulsa **+** y copia la clave.
@@ -136,29 +136,30 @@ Requiere DSM 7 con Download Station.
    - No le actives la verificación en dos pasos.
    - En Download Station, con tu administrador: **⚙ Configuración → General → Habilitar descargas eMule**.
    - **Importante:** inicia sesión en DSM una vez con el usuario que has creado, abre Download Station y elige una carpeta de destino por defecto. Si no lo haces, las descargas pueden quedarse en «Finalizando» o dar error.
-2. **En UIspa:** en los ajustes, sección **Descargas en el NAS (Synology)**:
+2. **En UIspa:** en los ajustes, pestaña **Descargas → NAS Synology**:
    - **Dirección:** por ejemplo `http://192.168.1.10:5000`. Con HTTPS solo funciona si el NAS tiene un certificado válido; el autofirmado de fábrica lo rechaza el navegador.
    - **Usuario y contraseña** del usuario que has creado.
    - **Carpeta por defecto:** opcional, por ejemplo `docker/data`.
 3. Pulsa **Guardar** y recarga Hispashare: aparecerán los botones 📥.
 
-## aMule remoto
+## Descarga remota
 
-Para un aMule que no está en el ordenador donde navegas. En los ajustes, sección **aMule remoto**, elige cómo conectar:
+Para un programa de descargas que no está en el ordenador donde navegas, o que UIspa no puede abrir directamente. En los ajustes, pestaña **Descargas → Descarga remota**, elige cómo conectar:
 
 - **aMule 3.1 o posterior** (directo):
   - **Docker (`ngosang/amule`):** pon una contraseña con `WEBUI_PWD` y publica el puerto `4711`. En UIspa: dirección `http://IP:4711` y esa contraseña.
   - **aMule normal en otro ordenador:** en **Preferencias → Controles remotos**, marca **«Run amuleapi (REST API) on startup»** y pon la interfaz de escucha (no `127.0.0.1` si es desde otro equipo), el puerto (por defecto `4713`) y la contraseña de administrador.
   - Con aMule 2.3.x (la interfaz web antigua, amuleweb) no funciona: actualízalo o usa aMuTorrent.
 - **aMuTorrent:** dirección `http://IP:4000` y, si tiene usuarios activados, la **clave de API** de tu usuario (en aMuTorrent, **Ajustes → Gestión de usuarios**).
+- **Rucio:** dirección de su panel, por defecto `http://127.0.0.1:3003`. Desde otro equipo o en Docker, su API tiene que escuchar en la red (`RUCIOD_API_LISTEN=0.0.0.0:3003`). Rucio no tiene contraseña propia; si está detrás de un proxy con usuario y contraseña, ponlos.
 
-Pulsa **Probar conexión** para cargar las categorías, elige una si quieres y pulsa **Guardar**. Recarga Hispashare: aparecerá la fila 🐳 **aMule remoto**.
+Pulsa **Probar conexión** para cargar las categorías, elige una si quieres y pulsa **Guardar**. Recarga Hispashare: aparecerá la fila 🐳 **Descarga remota**.
 
 ## Favoritos
 
 1. Marca una película o serie con **☆ Añadir a favoritos** en su ficha, o con la ☆ que aparece al pasar el ratón por su carátula en la portada.
 2. En la portada (primera página de Novedades) verás el panel **«Tus favoritos»**. Para quitar uno, pulsa su ★.
-3. En los ajustes, sección **Favoritos**, puedes:
+3. En los ajustes, pestaña **Favoritos**, puedes:
    - elegir **dónde se guardan**: en tu cuenta del navegador (sincronizados entre ordenadores) o solo en este navegador. Al cambiar, se mueven solos;
    - activar o desactivar el **aviso de novedades** (se comprueba una vez al día al abrir la portada);
    - ver la lista, quitar favoritos, **exportarlos** a un archivo o **importarlos**.
@@ -168,7 +169,7 @@ En Firefox, para que se sincronicen entre ordenadores tienes que tener activada 
 ## Privacidad
 
 - UIspa no recoge ni envía datos a ningún servidor propio ni de terceros. En Firefox lo declara así en su instalación (`data_collection_permissions: none`).
-- Solo se comunica con Hispashare, para obtener los enlaces que ya ofrece la web, con tu servidor Plex o Jellyfin, tu NAS Synology y tu aMule remoto si los configuras.
+- Solo se comunica con Hispashare, para obtener los enlaces que ya ofrece la web, con tu servidor Plex o Jellyfin, tu NAS Synology y tu descarga remota (aMule, aMuTorrent o Rucio) si los configuras.
 - Los favoritos se guardan donde elijas: en el almacenamiento sincronizado del navegador (viajan con tu cuenta de Firefox o de Google) o solo en tu navegador. Nunca van a ningún servidor de UIspa.
 - Las direcciones, credenciales y contraseñas se guardan únicamente en tu navegador; la contraseña del NAS viaja en el cuerpo de la petición, nunca en la dirección. Las consultas salen de la extensión, no de la página, así que la web nunca las ve. Del servidor solo se usan el tamaño y la resolución de los archivos, nunca sus rutas.
 
@@ -180,7 +181,7 @@ En Firefox, para que se sincronicen entre ordenadores tienes que tener activada 
 | `clipboardWrite` (y `offscreen` en Chrome) | Copiar enlaces al portapapeles, también desde atajos y menús |
 | `contextMenus` | Opciones del menú del botón derecho |
 | `storage` | Guardar la configuración, la apariencia y los favoritos (en tu navegador o sincronizados con tu cuenta, según elijas) |
-| Acceso opcional a la dirección de tu servidor o NAS | Solo se pide si configuras Plex, Jellyfin, Synology o aMule remoto, y únicamente para esa dirección |
+| Acceso opcional a la dirección de tu servidor o NAS | Solo se pide si configuras Plex, Jellyfin, Synology o una descarga remota, y únicamente para esa dirección |
 
 ## Estructura
 
@@ -198,12 +199,12 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 |---|---|
 | `manifest.json` | Definición de la extensión |
 | `theme-early.js`, `theme.js`, `theme.css` | Rediseño de la web: apariencia, scroll infinito, versiones plegables y temporadas |
-| `content.js`, `content.css` | Botones de copiar, eMule, aMule remoto y NAS (también «los que faltan») y avisos |
+| `content.js`, `content.css` | Botones de copiar, eMule, descarga remota y NAS (también «los que faltan») y avisos |
 | `media.js` | Marcas de Plex o Jellyfin en las fichas |
 | `background.js` | Segundo plano: atajos y menús |
 | `media-bg.js`, `plex-bg.js`, `jellyfin-bg.js` | Consultas al servidor multimedia |
 | `synology-bg.js` | Envío de enlaces a Download Station y exploración de carpetas |
-| `amule-bg.js` | Envío de enlaces a aMule remoto (amuleapi o aMuTorrent) |
+| `amule-bg.js` | Envío de enlaces a la descarga remota (aMule, aMuTorrent o Rucio) |
 | `favorites.js` | Favoritos: estrellas, fila de la portada y aviso de novedades |
 | `setup-bg.js` | Abre el asistente de configuración al instalar |
 | `offscreen.html`, `offscreen.js` | Solo Chrome: copia al portapapeles desde segundo plano |
@@ -215,6 +216,11 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 - La coincidencia exacta con el servidor se basa en el tamaño que muestra la web, redondeado a dos decimales. Si renombras o recomprimes un archivo, aparecerá como «≈» u «otra calidad».
 
 ## Novedades
+
+**4.2.0**
+- **Rucio:** la descarga remota (antes «aMule remoto») admite también Rucio, el cliente P2P con acceso a la red Kad de eMule, con usuario y contraseña opcionales si está detrás de un proxy. La fila 🐳 pasa a llamarse **Descarga remota**.
+- **Ajustes en pestañas:** Apariencia, Plex / Jellyfin, Descargas (en este ordenador, NAS Synology y descarga remota) y Favoritos, con un punto verde en lo que está conectado.
+- Si te equivocas de opción o de puerto (aMule, aMuTorrent o Rucio), los ajustes te dicen cuál elegir.
 
 **4.1.0**
 - **aMule remoto:** nueva fila 🐳 para mandar los enlaces a un aMule en Docker, en un NAS o en otro ordenador, todos de golpe. Funciona con aMule 3.1 o posterior directamente (amuleapi) o a través de aMuTorrent, con elección de categoría. Nuevo paso en el asistente.

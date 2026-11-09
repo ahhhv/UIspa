@@ -490,9 +490,9 @@
     }
   }
 
-  // ---------------------------------------------------------------- aMule remoto
-  // aMule en Docker, en un NAS o en otro ordenador, por su API web (aMule 3.1+)
-  // o por aMuTorrent: se manda desde el segundo plano, todos de golpe.
+  // ---------------------------------------------------------------- descarga remota
+  // aMule en Docker, en un NAS o en otro ordenador por su API web (aMule 3.1+),
+  // aMuTorrent o Rucio: se manda desde el segundo plano, todos de golpe.
   let amOn = false;
   const amDone = new Set();
   async function sendToAmule(g, btn, kind) {
@@ -505,13 +505,14 @@
       const links = pick(g, c.links, kind) || await fetchLinks(g.id, maskFor(g, kind));
       if (!links.length) { toast("No se han encontrado enlaces", true); return; }
       const r = await api.runtime.sendMessage({ action: "am-add", links });
-      if (!r?.ok) { toast("aMule: " + (r?.error || "no se pudo enviar"), true); return; }
-      if (!r.count) { toast("aMule no ha añadido nada: " + (r.error || "los enlaces ya estaban en la lista"), true); return; }
-      toast(`🐳 ${r.count === 1 ? "Enviado 1 enlace" : `Enviados ${r.count} enlaces`} a aMule` +
+      const who = r?.target || "la descarga remota";
+      if (!r?.ok) { toast(`${who}: ` + (r?.error || "no se pudo enviar"), true); return; }
+      if (!r.count) { toast(`${who} no ha añadido nada: ` + (r.error || "los enlaces ya estaban en la lista"), true); return; }
+      toast(`🐳 ${r.count === 1 ? "Enviado 1 enlace" : `Enviados ${r.count} enlaces`} a ${who}` +
         (r.failed ? ` (${r.failed} ya estaban en la lista o no son válidos)` : ""));
       if (btn.classList.contains("hc-copy-btn")) { btn.textContent = "✔"; setTimeout(() => (btn.textContent = "🐳"), 1500); }
     } catch (e) {
-      toast("Error al enviar a aMule: " + e.message, true);
+      toast("Error al enviar a la descarga remota: " + e.message, true);
     } finally {
       setBusy(btn, false);
     }
@@ -523,10 +524,10 @@
     const warm = () => prefetch(g);
     const hasChecks = g.rows.some((r) => document.getElementById(`elink_${g.id}_${r.i}`));
     const buttons = [];
-    if (hasChecks) buttons.push(makeSiteButton("Seleccionados", "Enviar los capítulos marcados a aMule", (b) => sendToAmule(g, b, "sel")));
+    if (hasChecks) buttons.push(makeSiteButton("Seleccionados", "Enviar los capítulos marcados a la descarga remota", (b) => sendToAmule(g, b, "sel")));
     buttons.push(g.count === 1
-      ? makeSiteButton("🐳 Enviar a aMule", "Enviar a aMule remoto", (b) => sendToAmule(g, b, "all"))
-      : makeSiteButton("Todos", "Enviar todos los enlaces de esta versión a aMule", (b) => sendToAmule(g, b, "all")));
+      ? makeSiteButton("🐳 Enviar", "Enviar a la descarga remota (aMule, aMuTorrent o Rucio)", (b) => sendToAmule(g, b, "all"))
+      : makeSiteButton("Todos", "Enviar todos los enlaces de esta versión a la descarga remota", (b) => sendToAmule(g, b, "all")));
     buttons.forEach((b) => { b.classList.add("hc-amule"); b.addEventListener("pointerenter", warm); });
     ui.last.after(...buttons.flatMap((b) => [document.createTextNode(" "), b]));
     for (const { i } of g.rows) {
@@ -535,7 +536,7 @@
       const b = document.createElement("button");
       b.type = "button";
       b.className = "hc-copy-btn hc-amule-btn";
-      b.title = "Enviar a aMule remoto";
+      b.title = "Enviar a la descarga remota";
       b.textContent = "🐳";
       b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); sendToAmule(g, b, i); });
       // detrás del ▶ de eMule si lo hay
@@ -769,7 +770,7 @@
       if (many && !t) {
         t = document.createElement("span");
         t.className = "hc-grp-t";
-        t.textContent = { copy: "📋 Copiar", emule: "▶ eMule / aMule", amule: "🐳 aMule remoto", nas: "📥 NAS" }[k];
+        t.textContent = { copy: "📋 Copiar", emule: "▶ eMule / aMule", amule: "🐳 Descarga remota", nas: "📥 NAS" }[k];
         grp.prepend(t);
       }
       if (t) t.hidden = !many;

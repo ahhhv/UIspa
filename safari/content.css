@@ -51,7 +51,7 @@ a.hc-site-btn { cursor: pointer; }
 .hc-grp-amule.hc-grp-box { border-left-color: rgba(64,196,220,.6); }
 .hc-grp-nas.hc-grp-box { border-left-color: rgba(80,150,255,.6); }
 .hc-grp > a.BUTTON { margin: 0 !important; }
-.hc-grp-t { font-size: 12px; font-weight: 600; min-width: 118px; white-space: nowrap; }
+.hc-grp-t { font-size: 12px; font-weight: 600; min-width: 136px; white-space: nowrap; }
 .hc-grp-t[hidden] { display: none; }
 .hc-grp-copy .hc-grp-t { color: #f5b301; }
 .hc-grp-emule .hc-grp-t { color: #6fd39a; }

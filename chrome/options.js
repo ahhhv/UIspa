@@ -217,21 +217,23 @@ api.storage.local.get(["server", "plexUrl", "plexToken", "jfUrl", "jfKey"]).then
   });
 }
 
-// ------------------------------------------------------------ aMule remoto (amuleapi o aMuTorrent)
+// ------------------------------------------------------------ descarga remota (amuleapi, aMuTorrent o Rucio)
 {
   const st = $("amStatus");
   const amSay = (msg, cls = "") => { st.className = cls; st.textContent = msg; };
-  const AM_KEYS = ["amType", "amUrl", "amPass", "amCat"];
+  const AM_KEYS = ["amType", "amUrl", "amUser", "amPass", "amCat"];
   const TYPES = {
     amuleapi: { name: "aMule", port: "4711", placeholder: "http://192.168.1.10:4711", pass: "Contraseña", passRequired: true },
-    amutorrent: { name: "aMuTorrent", port: "4000", placeholder: "http://192.168.1.10:4000", pass: "Clave de API (si la pide)", passRequired: false }
+    amutorrent: { name: "aMuTorrent", port: "4000", placeholder: "http://192.168.1.10:4000", pass: "Clave de API (si la pide)", passRequired: false },
+    rucio: { name: "Rucio", port: "3003", placeholder: "http://127.0.0.1:3003", pass: "Contraseña del proxy (opcional)", passRequired: false }
   };
-  const type = () => document.querySelector("input[name=amType]:checked")?.value === "amutorrent" ? "amutorrent" : "amuleapi";
+  const type = () => { const v = document.querySelector("input[name=amType]:checked")?.value; return TYPES[v] ? v : "amuleapi"; };
   function applyType() {
     const t = TYPES[type()];
     $("amUrl").placeholder = t.placeholder;
     $("amPassLabel").textContent = t.pass;
     $("amPass").type = type() === "amutorrent" ? "text" : "password";
+    $("amUserBox").hidden = type() !== "rucio";
   }
 
   function amUrl(raw) {
@@ -258,21 +260,23 @@ api.storage.local.get(["server", "plexUrl", "plexToken", "jfUrl", "jfKey"]).then
     sel.value = String(selected ?? list[0].index);
     if (sel.selectedIndex < 0) sel.selectedIndex = 0;
   }
-  const catValue = () => type() === "amuleapi" ? Number($("amCat").value) || 0 : $("amCat").value;
+  const catValue = () => type() === "amuleapi" ? Number($("amCat").value) || 0
+    : type() === "rucio" ? ($("amCat").value === "" ? "" : Number($("amCat").value)) : $("amCat").value;
 
   // Lee el formulario y pide permiso para esa dirección (desde el clic)
   async function withAmule(fn) {
     const t = type();
     const url = amUrl($("amUrl").value);
     const pass = $("amPass").value.trim();
+    const user = t === "rucio" ? $("amUser").value.trim() : "";
     if (!url) { amSay(`Escribe la dirección de ${TYPES[t].name}, por ejemplo ${TYPES[t].placeholder}`, "err"); return; }
     if (TYPES[t].passRequired && !pass) { amSay("Falta la contraseña de la interfaz web de aMule.", "err"); return; }
     let granted = false;
     try { granted = await api.permissions.request({ origins: [hostPattern(url)] }); }
     catch (e) { amSay("No se pudo pedir permiso: " + e.message, "err"); return; }
-    if (!granted) { amSay(`Sin permiso para acceder a ${url}, la extensión no puede usar tu aMule.`, "err"); return; }
+    if (!granted) { amSay(`Sin permiso para acceder a ${url}, la extensión no puede usarlo.`, "err"); return; }
     $("amUrl").value = url;
-    await fn({ type: t, url, pass });
+    await fn({ type: t, url, user, pass });
   }
 
   async function amTest(cfg) {
@@ -280,7 +284,7 @@ api.storage.local.get(["server", "plexUrl", "plexToken", "jfUrl", "jfKey"]).then
     const r = await api.runtime.sendMessage({ action: "am-test", ...cfg });
     if (!r?.ok) { amSay(r?.error || "No se pudo conectar.", "err"); return false; }
     fillCats(r.categories, $("amCat").value);
-    const what = cfg.type === "amutorrent" ? "aMuTorrent" : `aMule${r.version ? " " + r.version : ""}`;
+    const what = `${TYPES[cfg.type].name}${r.version ? " " + r.version : ""}`;
     amSay(`Conectado a ${what}.` + (r.categories?.length > 1 ? ` ${r.categories.length} categorías.` : ""), "ok");
     return true;
   }
@@ -293,9 +297,9 @@ api.storage.local.get(["server", "plexUrl", "plexToken", "jfUrl", "jfKey"]).then
   $("amTest").addEventListener("click", () => withAmule(amTest));
   $("amSave").addEventListener("click", () => withAmule(async (cfg) => {
     if (!(await amTest(cfg))) return;
-    await api.storage.local.set({ amType: cfg.type, amUrl: cfg.url, amPass: cfg.pass, amCat: catValue() });
+    await api.storage.local.set({ amType: cfg.type, amUrl: cfg.url, amUser: cfg.user, amPass: cfg.pass, amCat: catValue() });
     await api.runtime.sendMessage({ action: "am-reset" });
-    st.prepend("Guardado. Recarga Hispashare para ver la fila 🐳 aMule remoto. ");
+    st.prepend("Guardado. Recarga Hispashare para ver la fila 🐳 Descarga remota. ");
   }));
   $("amCat").addEventListener("change", async () => {
     const { amUrl: saved, amType: savedType } = await api.storage.local.get(["amUrl", "amType"]);
@@ -306,21 +310,22 @@ api.storage.local.get(["server", "plexUrl", "plexToken", "jfUrl", "jfKey"]).then
     await api.storage.local.remove(AM_KEYS);
     await api.runtime.sendMessage({ action: "am-reset" });
     if (old) { try { await api.permissions.remove({ origins: [hostPattern(old)] }); } catch (_) {} }
-    $("amUrl").value = $("amPass").value = "";
+    $("amUrl").value = $("amPass").value = $("amUser").value = "";
     fillCats([], null);
-    amSay("aMule remoto desconectado. Se han borrado la dirección y la contraseña.");
+    amSay("Descarga remota desconectada. Se han borrado la dirección y la contraseña.");
   });
 
   api.storage.local.get(AM_KEYS).then((s) => {
-    const t = s.amType === "amutorrent" ? "amutorrent" : "amuleapi";
+    const t = TYPES[s.amType] ? s.amType : "amuleapi";
     document.querySelector(`input[name=amType][value=${t}]`).checked = true;
     applyType();
     if (s.amUrl) $("amUrl").value = s.amUrl;
+    if (s.amUser) $("amUser").value = s.amUser;
     if (s.amPass) $("amPass").value = s.amPass;
     const cat = s.amCat ?? null;
     const isDefault = cat === null || cat === "" || cat === 0 || cat === "Default";
-    fillCats(isDefault ? [] : [{ index: t === "amuleapi" ? 0 : "", name: "Por defecto" }, { index: cat, name: t === "amuleapi" ? `Categoría ${cat}` : cat }], cat);
-    if (s.amUrl && (t === "amutorrent" || s.amPass)) amSay(`${TYPES[t].name} configurado. Prueba la conexión para ver sus categorías.`, "ok");
+    fillCats(isDefault ? [] : [{ index: t === "amuleapi" ? 0 : "", name: "Por defecto" }, { index: cat, name: t === "amutorrent" ? cat : `Categoría ${cat}` }], cat);
+    if (s.amUrl && (t !== "amuleapi" || s.amPass)) amSay(`${TYPES[t].name} configurado. Prueba la conexión para ver sus categorías.`, "ok");
   });
 }
 
@@ -348,6 +353,90 @@ for (const id of ["lookTheme", "lookSize", "lookTitleSize", "lookInfinite"]) $(i
 loadLook();
 
 
+// ------------------------------------------------------------ pestañas de los ajustes
+// Fuera del asistente se ve una sección (o grupo) cada vez. El punto verde de
+// cada pestaña indica que hay algo conectado. La pestaña va en la dirección
+// (#descargas/nas), así que recargar o enlazar abre la misma.
+const uiNav = (() => {
+  const TABS = [
+    { id: "apariencia", label: "🎨 Apariencia", secs: ["sec-look"] },
+    { id: "multimedia", label: "📺 Plex / Jellyfin", secs: ["sec-media"],
+      dot: (s) => !!((s.plexUrl && s.plexToken) || (s.jfUrl && s.jfKey)) },
+    { id: "descargas", label: "⬇ Descargas", subs: [
+      { id: "local", label: "En este ordenador", sec: "sec-local" },
+      { id: "nas", label: "NAS Synology", sec: "sec-nas", dot: (s) => !!(s.dsUrl && s.dsUser && s.dsPass) },
+      { id: "remota", label: "Descarga remota", sec: "sec-amule", dot: (s) => !!s.amUrl }
+    ] },
+    { id: "favoritos", label: "⭐ Favoritos", secs: ["sec-favs"] }
+  ];
+  TABS[2].dot = (s) => TABS[2].subs.some((x) => x.dot?.(s));
+  const KEYS = ["plexUrl", "plexToken", "jfUrl", "jfKey", "dsUrl", "dsUser", "dsPass", "amUrl"];
+  let cur = "apariencia", sub = "local";
+
+  const mk = (label, onclick) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.append(label);
+    b.addEventListener("click", onclick);
+    return b;
+  };
+  const nav = $("nav"), subnav = $("subnav");
+  for (const t of TABS) {
+    const b = mk(t.label, () => go(t.id));
+    b.dataset.tab = t.id;
+    if (t.dot) { const d = document.createElement("span"); d.className = "dot"; b.append(d); }
+    nav.append(b);
+  }
+  for (const x of TABS[2].subs) {
+    const b = mk(x.label, () => go("descargas", x.id));
+    b.dataset.sub = x.id;
+    b.setAttribute("role", "tab");
+    if (x.dot) { const d = document.createElement("span"); d.className = "dot"; b.append(d); }
+    subnav.append(b);
+  }
+
+  function apply() {
+    if (document.body.classList.contains("wizard")) return;
+    const t = TABS.find((x) => x.id === cur) || TABS[0];
+    const visible = t.subs ? [t.subs.find((x) => x.id === sub)?.sec || t.subs[0].sec] : t.secs;
+    document.querySelectorAll("main > section").forEach((sec) => (sec.hidden = !visible.includes(sec.id)));
+    nav.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.tab === t.id));
+    subnav.hidden = !t.subs;
+    subnav.querySelectorAll("button").forEach((b) => {
+      b.classList.toggle("on", b.dataset.sub === sub);
+      b.setAttribute("aria-selected", String(b.dataset.sub === sub));
+    });
+  }
+  function go(tab, subId) {
+    cur = tab;
+    if (subId) sub = subId;
+    const hash = "#" + tab + (tab === "descargas" ? "/" + sub : "");
+    if (location.hash !== hash) history.replaceState(null, "", hash);
+    apply();
+  }
+  function fromHash() {
+    const [t, x] = location.hash.replace(/^#/, "").split("/");
+    if (TABS.some((y) => y.id === t)) { cur = t; if (x && TABS[2].subs.some((y) => y.id === x)) sub = x; }
+  }
+  async function dots() {
+    const s = await api.storage.local.get(KEYS);
+    for (const t of TABS) nav.querySelector(`[data-tab="${t.id}"] .dot`)?.classList.toggle("set", !!t.dot?.(s));
+    for (const x of TABS[2].subs) subnav.querySelector(`[data-sub="${x.id}"] .dot`)?.classList.toggle("set", !!x.dot?.(s));
+  }
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest?.("[data-go]");
+    if (!a) return;
+    e.preventDefault();
+    const [t, x] = a.dataset.go.split("/");
+    go(t, x);
+    window.scrollTo({ top: 0 });
+  });
+  api.storage.onChanged.addListener((ch, area) => { if (area === "local" && KEYS.some((k) => k in ch)) dots(); });
+  fromHash();
+  dots();
+  return { apply, go };
+})();
+
 // ------------------------------------------------------------ asistente de configuración
 // Muestra las secciones de una en una. «Siguiente» guarda lo que hayas escrito
 // en ese paso (con su prueba de conexión) antes de avanzar.
@@ -363,7 +452,7 @@ loadLook();
       }, save: "save", status: "status" },
     { id: "sec-nas", name: "NAS", intro: "Si tienes un Synology con Download Station, conéctalo para mandar descargas con 📥. Sigue los pasos de «¿Cómo lo preparo en el NAS?». Si no, pulsa Omitir.",
       dirty: () => !!($("dsUrl").value.trim() && $("dsUser").value.trim() && $("dsPass").value) && !nasSaved(), save: "dsSave", status: "dsStatus" },
-    { id: "sec-amule", name: "aMule remoto", intro: "Si tienes aMule en Docker, en un NAS o en otro ordenador (directamente o con aMuTorrent), conéctalo para mandarle los enlaces con 🐳. Si usas eMule o aMule en este mismo ordenador no hace falta: pulsa Omitir.",
+    { id: "sec-amule", name: "Descarga remota", intro: "Si tienes aMule en Docker, en un NAS o en otro ordenador, aMuTorrent o Rucio, conéctalo para mandarle los enlaces con 🐳. Si usas eMule o aMule en este mismo ordenador no hace falta: pulsa Omitir.",
       dirty: () => !!$("amUrl").value.trim() && !amSaved(), save: "amSave", status: "amStatus" },
     { id: "sec-done", name: "Listo", intro: "" }
   ];
@@ -372,9 +461,9 @@ loadLook();
   const refreshNas = () => api.storage.local.get(["dsUrl", "dsUser", "dsPass"]).then((s) => { nasStored = s; });
   refreshNas();
   let amStored = {};
-  const amSaved = () => $("amUrl").value.trim() === (amStored.amUrl || "") && $("amPass").value.trim() === (amStored.amPass || "")
+  const amSaved = () => $("amUrl").value.trim() === (amStored.amUrl || "") && $("amPass").value.trim() === (amStored.amPass || "") && $("amUser").value.trim() === (amStored.amUser || "")
     && (document.querySelector("input[name=amType]:checked")?.value || "amuleapi") === (amStored.amType || "amuleapi");
-  const refreshAm = () => api.storage.local.get(["amType", "amUrl", "amPass"]).then((s) => { amStored = s; });
+  const refreshAm = () => api.storage.local.get(["amType", "amUrl", "amUser", "amPass"]).then((s) => { amStored = s; });
   refreshAm();
 
   const all = () => [...document.querySelectorAll("main > section")];
@@ -409,7 +498,7 @@ loadLook();
       s.plexUrl && s.plexToken ? "✓ Plex conectado." : "Plex: sin configurar.",
       s.jfUrl && s.jfKey ? "✓ Jellyfin conectado." : "Jellyfin: sin configurar.",
       s.dsUrl && s.dsUser && s.dsPass ? "✓ NAS conectado (botones 📥)." : "NAS: sin configurar.",
-      s.amUrl && (s.amPass || s.amType === "amutorrent") ? `✓ aMule remoto conectado${s.amType === "amutorrent" ? " (aMuTorrent)" : ""} (botones 🐳).` : "aMule remoto: sin configurar."
+      s.amUrl && (s.amPass || (s.amType && s.amType !== "amuleapi")) ? `✓ Descarga remota conectada: ${{ amutorrent: "aMuTorrent", rucio: "Rucio" }[s.amType] || "aMule"} (botones 🐳).` : "Descarga remota: sin configurar."
     ];
     for (const t of items) { const li = document.createElement("li"); li.textContent = t; ul.append(li); }
   }
@@ -438,8 +527,8 @@ loadLook();
     document.body.classList.remove("wizard");
     $("wizBar").hidden = $("wizNav").hidden = true;
     $("wizStart").hidden = false;
-    all().forEach((sec) => (sec.hidden = sec.classList.contains("wiz-only")));
-    if (location.hash) history.replaceState(null, "", location.pathname);
+    if (location.hash === "#asistente") history.replaceState(null, "", location.pathname);
+    uiNav.apply();
   }
   $("wizOpen").addEventListener("click", open);
   $("wizBack").addEventListener("click", () => { if (step > 0) { step--; render(); } });
@@ -463,8 +552,8 @@ loadLook();
     step++;
     render();
   });
-  all().forEach((sec) => { if (sec.classList.contains("wiz-only")) sec.hidden = true; });
   if (location.hash === "#asistente") open();
+  else uiNav.apply();
 }
 
 // ------------------------------------------------------------ favoritos
@@ -513,6 +602,7 @@ loadLook();
   $("emuleBtns").addEventListener("change", async (e) => {
     if (e.target.checked) await api.storage.local.remove("emuleOff");
     else await api.storage.local.set({ emuleOff: true });
+    $("localStatus").textContent = "Guardado. Recarga las pestañas de Hispashare para verlo.";
   });
   api.storage.local.get("emuleOff").then((s) => { $("emuleBtns").checked = !s.emuleOff; });
   $("favCheck").addEventListener("change", async (e) => {

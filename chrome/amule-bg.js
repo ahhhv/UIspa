@@ -1,4 +1,4 @@
-// UIspa · conector de «aMule remoto» (segundo plano): aMule en Docker, en un NAS
+// UIspa · conector de «Descarga remota» (segundo plano): aMule en Docker, en un NAS
 // o en otro ordenador. Dos formas de hablar con él:
 //  · amuleapi (aMule 3.1 o posterior), en el puerto de su interfaz web (4711 en Docker):
 //      POST /api/v1/auth/login?include_token=true  { password }  → { token, role, expires_at }
@@ -6,10 +6,16 @@
 //  · aMuTorrent (interfaz web para aMule y clientes de torrent), puerto 4000:
 //      cabecera X-API-Key (solo si tiene usuarios activados)
 //      POST /api/v1/downloads/ed2k  { links: [...], categoryName } → { results: [{ link, success }] }
+//  · Rucio (cliente P2P con puente a la red Kad de eMule), puerto 3003, sin
+//    contraseña propia (opcionalmente detrás de un proxy con usuario y contraseña):
+//      POST /api/v1/downloads/ed2k  { link, category_id }  → 202, un enlace por llamada
 // La contraseña o clave se guarda solo en este navegador y únicamente se envía a tu aMule.
 (() => {
   const api = typeof browser !== "undefined" ? browser : chrome;
-  const KEYS = ["amType", "amUrl", "amPass", "amCat"];
+  const KEYS = ["amType", "amUrl", "amUser", "amPass", "amCat"];
+  const TYPES = ["amuleapi", "amutorrent", "rucio"];
+  const NAMES = { amuleapi: "aMule", amutorrent: "aMuTorrent", rucio: "Rucio" };
+  const typeOf = (t) => TYPES.includes(t) ? t : "amuleapi";
   const mem = { token: null, exp: 0, key: "" };
 
   const ERRORS = {
@@ -25,14 +31,17 @@
 
   async function config() {
     const s = await api.storage.local.get(KEYS);
-    const type = s.amType === "amutorrent" ? "amutorrent" : "amuleapi";
+    const type = typeOf(s.amType);
     if (!s.amUrl || (type === "amuleapi" && !s.amPass)) return null;
-    return { type, url: cleanUrl(s.amUrl), pass: s.amPass || "", cat: s.amCat ?? (type === "amuleapi" ? 0 : "") };
+    return { type, url: cleanUrl(s.amUrl), user: s.amUser || "", pass: s.amPass || "", cat: s.amCat ?? (type === "amuleapi" ? 0 : "") };
   }
 
   async function call(cfg, path, { method = "GET", body, token } = {}) {
     const headers = { Accept: "application/json" };
     if (cfg.type === "amutorrent" && cfg.pass) headers["X-API-Key"] = cfg.pass;
+    if (cfg.type === "rucio" && (cfg.user || cfg.pass)) {
+      headers.Authorization = "Basic " + btoa(unescape(encodeURIComponent(`${cfg.user}:${cfg.pass}`)));
+    }
     if (body) headers["Content-Type"] = "application/json";
     if (token) headers.Authorization = "Bearer " + token;
     let res;
@@ -52,6 +61,9 @@
   const AMT_401 = "aMuTorrent pide identificarse: pon la clave de API de tu usuario (Ajustes → Gestión de usuarios)";
   async function amtCategories(cfg) {
     const r = await call(cfg, "/api/v1/categories");
+    if (Array.isArray(r.data?.categories) && !r.data?.type) {
+      throw new Error("Esa dirección parece la de Rucio, no la de aMuTorrent: elige arriba «Rucio».");
+    }
     if (r.data?.error?.code || (await isAmuleApi(cfg))) {
       throw new Error("Esa dirección es la de aMule (su interfaz web nueva), no la de aMuTorrent: elige arriba «aMule 3.1 o posterior».");
     }
@@ -90,10 +102,52 @@
     return mem.token;
   }
 
+  // ---- Rucio
+  const RUCIO_401 = "Rucio está detrás de un proxy que pide usuario y contraseña: ponlos en los ajustes";
+  async function rucioCheck(cfg) {
+    const r = await call(cfg, "/api/v1/status");
+    if (r.data?.error?.code || (await isAmuleApi(cfg))) {
+      throw new Error("Esa dirección es la de aMule (su interfaz web nueva), no la de Rucio: elige arriba «aMule 3.1 o posterior».");
+    }
+    if (r.data?.success === false || r.data?.type) {
+      throw new Error("Esa dirección parece la de aMuTorrent, no la de Rucio: elige arriba «aMuTorrent».");
+    }
+    if (r.status === 401) throw new Error(cfg.user || cfg.pass ? "Usuario o contraseña del proxy incorrectos" : RUCIO_401);
+    if (r.status !== 200 || !r.data?.peer_id) {
+      throw new Error("En esa dirección no responde Rucio. Comprueba la dirección y el puerto (por defecto el 3003) y que su API escuche en la red (RUCIOD_API_LISTEN=0.0.0.0:3003).");
+    }
+    return r.data.version || "";
+  }
+  async function rucioCategories(cfg) {
+    const r = await call(cfg, "/api/v1/categories");
+    const list = Array.isArray(r.data?.categories) ? r.data.categories : [];
+    return [{ index: "", name: "Por defecto" }, ...list.map((c) => ({ index: c.id, name: c.name }))];
+  }
+  async function rucioAdd(cfg, links, cat) {
+    const id = cat !== undefined && cat !== "" ? cat : cfg.cat;
+    const category_id = id === "" || id == null ? null : Number(id);
+    let count = 0, failed = 0, error = "";
+    for (const link of links) {
+      // Rucio no entiende las barras codificadas (%7C): se manda el enlace tal cual
+      const r = await call(cfg, "/api/v1/downloads/ed2k", { method: "POST", body: { link: link.replace(/%7C/gi, "|"), category_id } });
+      if (r.status === 401) throw new Error(cfg.user || cfg.pass ? "Usuario o contraseña del proxy incorrectos" : RUCIO_401);
+      if (r.status === 200 || r.status === 201 || r.status === 202) count++;
+      else { failed++; error = error || why(r, "Rucio no ha aceptado el enlace"); }
+    }
+    if (!count && failed) throw new Error(error);
+    return { ok: true, count, failed, error };
+  }
+
   async function add(links, cat) {
     const cfg = await config();
-    if (!cfg) throw new Error("aMule no está configurado en los ajustes de UIspa");
-    if (cfg.type === "amutorrent") return amtAdd(cfg, links, cat);
+    if (!cfg) throw new Error("La descarga remota no está configurada en los ajustes de UIspa");
+    const res = cfg.type === "amutorrent" ? await amtAdd(cfg, links, cat)
+      : cfg.type === "rucio" ? await rucioAdd(cfg, links, cat)
+      : await amuleAdd(cfg, links, cat);
+    return { ...res, target: NAMES[cfg.type] };
+  }
+
+  async function amuleAdd(cfg, links, cat) {
     const body = { links, category_index: Number.isInteger(cat) ? cat : (Number(cfg.cat) || 0) };
     let r = await call(cfg, "/api/v1/downloads", { method: "POST", token: await login(cfg), body });
     if (r.status === 401) r = await call(cfg, "/api/v1/downloads", { method: "POST", token: await login(cfg, true), body });
@@ -108,13 +162,19 @@
   }
 
   async function test(raw) {
-    const cfg = { type: raw.type === "amutorrent" ? "amutorrent" : "amuleapi", url: cleanUrl(raw.url), pass: raw.pass || "" };
+    const cfg = { type: typeOf(raw.type), url: cleanUrl(raw.url), user: raw.user || "", pass: raw.pass || "" };
     if (cfg.type === "amutorrent") return { version: "", categories: await amtCategories(cfg) };
+    if (cfg.type === "rucio") {
+      const version = await rucioCheck(cfg);
+      return { version, categories: await rucioCategories(cfg) };
+    }
     const v0 = await call(cfg, "/api/v1/version");
     if (v0.data?.service !== "amuleapi") {
-      throw new Error(v0.status === 401 || v0.data?.type
-        ? "Esa dirección parece la de aMuTorrent, no la de aMule: elige arriba «aMuTorrent»."
-        : "En esa dirección no responde la interfaz web de aMule 3.1 o posterior (amuleapi). Comprueba la dirección y el puerto; con versiones antiguas de aMule no funciona.");
+      if (v0.status === 401 || v0.data?.type) throw new Error("Esa dirección parece la de aMuTorrent, no la de aMule: elige arriba «aMuTorrent».");
+      let st = null;
+      try { st = await call(cfg, "/api/v1/status"); } catch (_) {}
+      if (st?.data?.peer_id) throw new Error("Esa dirección parece la de Rucio, no la de aMule: elige arriba «Rucio».");
+      throw new Error("En esa dirección no responde la interfaz web de aMule 3.1 o posterior (amuleapi). Comprueba la dirección y el puerto; con versiones antiguas de aMule no funciona.");
     }
     const token = await login(cfg, true);
     const v = await call(cfg, "/api/v1/version");

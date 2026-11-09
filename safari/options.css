@@ -92,3 +92,24 @@ body.wizard section details[open] { margin-bottom: 0; }
 .choice-opt small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
 .choice-opt:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--s2)); }
 .choice-opt:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+
+/* pestañas de los ajustes */
+.nav { display: flex; gap: 4px; flex-wrap: wrap; margin: 0 0 18px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; position: sticky; top: 8px; z-index: 5; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.nav button, .subnav button { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; color: var(--muted); font-weight: 600; padding: 8px 14px; border-radius: 8px; }
+.nav button:hover, .subnav button:hover { color: var(--text); background: var(--s2); }
+.nav button.on { background: var(--accent); color: #1a1400; }
+.nav button.on .dot:not(.set) { background: rgba(26,20,0,.35); }
+.nav .dot, .subnav .dot { margin-left: 0; }
+.subnav { display: flex; gap: 4px; flex-wrap: wrap; margin: -6px 0 16px; border-bottom: 1px solid var(--border); }
+.subnav[hidden], .nav[hidden] { display: none; }
+.subnav button { border-radius: 8px 8px 0 0; padding: 8px 12px; margin-bottom: -1px; border-bottom: 2px solid transparent; }
+.subnav button.on { color: var(--text); border-bottom-color: var(--accent); background: none; }
+body.wizard .nav, body.wizard .subnav { display: none; }
+#amStatus, #localStatus { margin-top: 14px; font-size: 14px; min-height: 1.5em; }
+#amStatus.ok { color: #7ee787; }
+#amStatus.err { color: #ff9a92; }
+a { color: var(--accent); }
+@media (max-width: 560px) {
+  .nav { top: 4px; }
+  .nav button { flex: 1 1 auto; justify-content: center; padding: 8px 10px; }
+}

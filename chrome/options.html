@@ -14,6 +14,10 @@
     <button id="wizOpen" type="button">Asistente de configuración</button>
   </div>
 
+  <!-- Ajustes: pestañas (se rellenan desde options.js) -->
+  <nav id="nav" class="nav" aria-label="Secciones de los ajustes"></nav>
+  <div id="subnav" class="subnav" role="tablist" aria-label="Dónde descargas" hidden></div>
+
   <!-- Asistente: muestra las secciones de una en una -->
   <div id="wizBar" class="wiz-bar" hidden>
     <ol id="wizSteps" class="wiz-steps"></ol>
@@ -25,7 +29,7 @@
     <p>UIspa rediseña Hispashare y te deja copiar los enlaces ed2k con un clic. Además puede:</p>
     <ul>
       <li>decirte qué capítulos o películas ya tienes en <b>Plex</b> o <b>Jellyfin</b>,</li>
-      <li>mandar descargas a tu <b>NAS Synology</b> (Download Station) o a un <b>aMule remoto</b> (Docker, NAS u otro ordenador, también con aMuTorrent),</li>
+      <li>mandar descargas a tu <b>NAS Synology</b> (Download Station) o a una <b>descarga remota</b> (aMule en Docker, NAS u otro ordenador, aMuTorrent o Rucio),</li>
       <li>guardar tus <b>favoritos</b> y avisarte de sus novedades.</li>
     </ul>
     <p class="muted">Todo es opcional: en cada paso puedes pulsar <b>Omitir</b>. Puedes volver a abrir este asistente cuando quieras desde los ajustes.</p>
@@ -61,7 +65,6 @@
       </div>
     </div>
     <label class="check"><input id="lookInfinite" type="checkbox"> Cargar más títulos al llegar al final de la página (scroll infinito)</label>
-    <label class="check"><input id="emuleBtns" type="checkbox" checked> Mostrar los botones ▶ para abrir los enlaces en eMule o aMule instalado en este ordenador</label>
     <div id="lookStatus" role="status" class="muted small"></div>
   </section>
 
@@ -107,6 +110,14 @@
     <p class="muted small">Las credenciales se guardan solo en este navegador y únicamente se envían a tu servidor, nunca a Hispashare ni a ningún otro sitio. Dan acceso a tu servidor: no las compartas.</p>
   </section>
 
+  <section id="sec-local">
+    <h2>eMule o aMule en este ordenador</h2>
+    <p class="muted">Los botones ▶ de cada ficha abren los enlaces en el programa que tu sistema tenga asociado a los enlaces ed2k: eMule, o aMule si lo has registrado como tal en sus preferencias (en Mac es imprescindible). Se mandan todos de un clic, también en Chrome, Brave o Edge.</p>
+    <label class="check"><input id="emuleBtns" type="checkbox" checked> Mostrar los botones ▶ eMule / aMule en las fichas</label>
+    <div id="localStatus" role="status" class="muted small"></div>
+    <p class="muted small">¿Tu programa de descargas está en otro equipo, en Docker o es Rucio? Configúralo en <a href="#descargas/remota" data-go="descargas/remota">Descarga remota</a>.</p>
+  </section>
+
   <section id="sec-nas">
     <h2>Descargas en el NAS (Synology)</h2>
     <p class="muted">Si lo configuras, junto a cada botón de copiar aparecerá 📥 para mandar los enlaces directamente a Download Station, eligiendo la carpeta en cada envío. Necesitas DSM 7 con las descargas eMule activadas en Download Station.</p>
@@ -150,8 +161,8 @@
 
 
   <section id="sec-amule">
-    <h2>aMule remoto</h2>
-    <p class="muted">Para un aMule que no está en este ordenador: en Docker, en un NAS o en otro equipo de casa. Si lo configuras, en cada versión aparece la fila 🐳 <b>aMule remoto</b> para mandarle los enlaces directamente, todos de un clic. Si aMule o eMule están en este mismo ordenador no hace falta: usa los botones ▶ eMule / aMule.</p>
+    <h2>Descarga remota (aMule, aMuTorrent o Rucio)</h2>
+    <p class="muted">Para un programa de descargas que UIspa no puede abrir directamente: aMule en Docker, en un NAS o en otro equipo de casa, aMuTorrent o Rucio. Si lo configuras, en cada versión aparece la fila 🐳 <b>Descarga remota</b> para mandarle los enlaces, todos de un clic. Si usas eMule o aMule en este mismo ordenador no hace falta: usa los botones ▶ eMule / aMule.</p>
 
     <label>Conectar con</label>
     <div class="choice" role="radiogroup" aria-label="Cómo conectar con aMule">
@@ -159,12 +170,16 @@
         <span><b>aMule 3.1 o posterior</b><small>Directamente, por su interfaz web nueva (amuleapi). En Docker, la imagen ngosang/amule actualizada.</small></span></label>
       <label class="choice-opt"><input type="radio" name="amType" value="amutorrent">
         <span><b>aMuTorrent</b><small>Si gestionas aMule con aMuTorrent. Sirve también con versiones antiguas de aMule.</small></span></label>
+      <label class="choice-opt"><input type="radio" name="amType" value="rucio">
+        <span><b>Rucio</b><small>Cliente P2P con acceso a la red Kad de eMule, en este ordenador o en otro. Por su API (puerto 3003).</small></span></label>
     </div>
 
+    <label for="amUrl">Dirección</label>
+    <input id="amUrl" type="url" placeholder="http://192.168.1.10:4711" autocomplete="off" spellcheck="false">
     <div class="cols">
-      <div>
-        <label for="amUrl">Dirección</label>
-        <input id="amUrl" type="url" placeholder="http://192.168.1.10:4711" autocomplete="off" spellcheck="false">
+      <div id="amUserBox" hidden>
+        <label for="amUser">Usuario del proxy <span class="opt">(opcional)</span></label>
+        <input id="amUser" type="text" autocomplete="off" spellcheck="false">
       </div>
       <div>
         <label for="amPass" id="amPassLabel">Contraseña</label>
@@ -196,8 +211,14 @@
         <li><b>Dirección:</b> la de aMuTorrent, por defecto <code>http://IP-de-la-máquina:4000</code>.</li>
         <li><b>Clave de API:</b> si tienes la identificación activada, en aMuTorrent ve a <b>Ajustes → Gestión de usuarios</b> y copia la clave de API de tu usuario (necesita permiso para añadir descargas). Si no tiene identificación, déjala vacía.</li>
       </ol>
+      <p class="muted small"><b>Rucio</b></p>
+      <ol>
+        <li><b>Dirección:</b> la de su panel web, por defecto <code>http://127.0.0.1:3003</code> si está en este ordenador. Desde otro equipo o en Docker, su API tiene que escuchar en la red: <code>RUCIOD_API_LISTEN=0.0.0.0:3003</code>.</li>
+        <li>Rucio no tiene contraseña propia. Si lo has puesto detrás de un proxy con usuario y contraseña (lo recomendable si lo abres a la red), escríbelos; si no, déjalos vacíos.</li>
+        <li>Para los enlaces ed2k hace falta su conexión a la red Kad de eMule (viene en las versiones publicadas).</li>
+      </ol>
     </details>
-    <p class="muted small">La contraseña o clave se guarda solo en este navegador y únicamente se envía a tu aMule.</p>
+    <p class="muted small">La contraseña o clave se guarda solo en este navegador y únicamente se envía a esa dirección.</p>
   </section>
 
   <section id="sec-favs">
