@@ -490,6 +490,60 @@
     }
   }
 
+  // ---------------------------------------------------------------- aMule remoto
+  // aMule en Docker, en un NAS o en otro ordenador, por su API web (aMule 3.1+)
+  // o por aMuTorrent: se manda desde el segundo plano, todos de golpe.
+  let amOn = false;
+  const amDone = new Set();
+  async function sendToAmule(g, btn, kind) {
+    if (btn.dataset.busy) return;
+    if (kind === "sel" && !maskSelected(g).includes("1")) { toast("Marca algún capítulo primero", true); return; }
+    setBusy(btn, true);
+    try {
+      const c = getAll(g);
+      await c.promise;
+      const links = pick(g, c.links, kind) || await fetchLinks(g.id, maskFor(g, kind));
+      if (!links.length) { toast("No se han encontrado enlaces", true); return; }
+      const r = await api.runtime.sendMessage({ action: "am-add", links });
+      if (!r?.ok) { toast("aMule: " + (r?.error || "no se pudo enviar"), true); return; }
+      if (!r.count) { toast("aMule no ha añadido nada: " + (r.error || "los enlaces ya estaban en la lista"), true); return; }
+      toast(`🐳 ${r.count === 1 ? "Enviado 1 enlace" : `Enviados ${r.count} enlaces`} a aMule` +
+        (r.failed ? ` (${r.failed} ya estaban en la lista o no son válidos)` : ""));
+      if (btn.classList.contains("hc-copy-btn")) { btn.textContent = "✔"; setTimeout(() => (btn.textContent = "🐳"), 1500); }
+    } catch (e) {
+      toast("Error al enviar a aMule: " + e.message, true);
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+  function enhanceAmule(g) {
+    const ui = uiByGroup.get(g.id);
+    if (!amOn || !ui || amDone.has(g.id)) return;
+    amDone.add(g.id);
+    const warm = () => prefetch(g);
+    const hasChecks = g.rows.some((r) => document.getElementById(`elink_${g.id}_${r.i}`));
+    const buttons = [];
+    if (hasChecks) buttons.push(makeSiteButton("Seleccionados", "Enviar los capítulos marcados a aMule", (b) => sendToAmule(g, b, "sel")));
+    buttons.push(g.count === 1
+      ? makeSiteButton("🐳 Enviar a aMule", "Enviar a aMule remoto", (b) => sendToAmule(g, b, "all"))
+      : makeSiteButton("Todos", "Enviar todos los enlaces de esta versión a aMule", (b) => sendToAmule(g, b, "all")));
+    buttons.forEach((b) => { b.classList.add("hc-amule"); b.addEventListener("pointerenter", warm); });
+    ui.last.after(...buttons.flatMap((b) => [document.createTextNode(" "), b]));
+    for (const { i } of g.rows) {
+      const copy = ui.rows.get(i);
+      if (!copy) continue;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "hc-copy-btn hc-amule-btn";
+      b.title = "Enviar a aMule remoto";
+      b.textContent = "🐳";
+      b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); sendToAmule(g, b, i); });
+      // detrás del ▶ de eMule si lo hay
+      const after = copy.parentElement.querySelector(".hc-emule-btn") || copy;
+      after.after(b);
+    }
+  }
+
   // ---------------------------------------------------------------- lo que me falta
   // Con Plex o Jellyfin configurados, cada versión de una serie tiene botones
   // para copiar o mandar al NAS solo los capítulos que no tienes.
@@ -680,9 +734,10 @@
   // Ordena los botones de cada versión en bloques: los de la web (seleccionar),
   // copiar, eMule y NAS. Se vuelve a llamar en cada pasada porque los botones
   // del NAS y «los que faltan» llegan más tarde.
-  const GROUPS = ["site", "copy", "emule", "nas"];
+  const GROUPS = ["site", "copy", "emule", "amule", "nas"];
   const kindOf = (a) => !a.classList.contains("hc-site-btn") ? "site"
-    : a.classList.contains("hc-nas") ? "nas" : a.classList.contains("hc-emule") ? "emule" : "copy";
+    : a.classList.contains("hc-nas") ? "nas" : a.classList.contains("hc-amule") ? "amule"
+    : a.classList.contains("hc-emule") ? "emule" : "copy";
   function arrangeBar(g) {
     const ui = uiByGroup.get(g.id);
     if (!ui?.last?.isConnected) return;
@@ -714,7 +769,7 @@
       if (many && !t) {
         t = document.createElement("span");
         t.className = "hc-grp-t";
-        t.textContent = { copy: "📋 Copiar", emule: "▶ eMule", nas: "📥 NAS" }[k];
+        t.textContent = { copy: "📋 Copiar", emule: "▶ eMule / aMule", amule: "🐳 aMule remoto", nas: "📥 NAS" }[k];
         grp.prepend(t);
       }
       if (t) t.hidden = !many;
@@ -725,7 +780,7 @@
   }
 
   function scan() {
-    findGroups().forEach((g) => { enhanceGroup(g); enhanceEmule(g); enhanceNas(g); enhanceMissing(g); arrangeBar(g); });
+    findGroups().forEach((g) => { enhanceGroup(g); enhanceEmule(g); enhanceAmule(g); enhanceNas(g); enhanceMissing(g); arrangeBar(g); });
     enhancePopup();
   }
   scan();
@@ -733,6 +788,9 @@
   try {
     api?.runtime?.sendMessage({ action: "ds-status" })?.then?.((r) => {
       if (r?.configured) { nasOn = true; scan(); }
+    }, () => {});
+    api?.runtime?.sendMessage({ action: "am-status" })?.then?.((r) => {
+      if (r?.configured) { amOn = true; scan(); }
     }, () => {});
   } catch (_) { /* sin segundo plano: nada que hacer */ }
   document.addEventListener("uispa-media", () => scan());

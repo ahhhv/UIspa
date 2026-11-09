@@ -23,10 +23,15 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 - Atajos: `Alt+Shift+C` copia todos los enlaces de la página y `Alt+Shift+S` los capítulos marcados. También desde el menú del botón derecho o el icono de la barra.
 - Los atajos se pueden cambiar en `chrome://extensions/shortcuts` (Chrome) o en `about:addons` → rueda dentada ⚙ → **Gestionar atajos de teclado de extensiones** (Firefox).
 
-**Abrir en eMule**
+**Abrir en eMule o aMule (en este ordenador)**
 - Botón ▶ junto a cada capítulo o archivo, y «Seleccionados» / «Todos» en cada versión («Abrir en eMule» en las películas). Se mandan todos de un solo clic.
+- Con aMule, el sistema tiene que saber abrir los enlaces ed2k con él: en las versiones actuales de aMule se activa en **Preferencias → General** (en Mac, imprescindible).
 - También funciona en Chrome, Brave, Edge y demás navegadores basados en Chromium, incluido el botón «Ejecutar enlaces» de la propia web, que en ellos no hacía nada.
 - Se pueden ocultar en los ajustes (Apariencia).
+
+**aMule remoto (opcional)**
+- Para aMule en Docker, en un NAS o en otro ordenador: botón 🐳 junto a cada capítulo y «Seleccionados» / «Todos» en cada versión. Se mandan todos de golpe, desde cualquier navegador.
+- Se conecta directamente con **aMule 3.1 o posterior** (su interfaz web nueva, amuleapi) o a través de **aMuTorrent**. Puedes elegir la categoría de aMule.
 
 **Enviar a Synology Download Station (opcional)**
 - Botón 📥 junto a cada capítulo o archivo, y «Seleccionados» / «Todos» en cada versión.
@@ -137,6 +142,18 @@ Requiere DSM 7 con Download Station.
    - **Carpeta por defecto:** opcional, por ejemplo `docker/data`.
 3. Pulsa **Guardar** y recarga Hispashare: aparecerán los botones 📥.
 
+## aMule remoto
+
+Para un aMule que no está en el ordenador donde navegas. En los ajustes, sección **aMule remoto**, elige cómo conectar:
+
+- **aMule 3.1 o posterior** (directo):
+  - **Docker (`ngosang/amule`):** pon una contraseña con `WEBUI_PWD` y publica el puerto `4711`. En UIspa: dirección `http://IP:4711` y esa contraseña.
+  - **aMule normal en otro ordenador:** en **Preferencias → Controles remotos**, marca **«Run amuleapi (REST API) on startup»** y pon la interfaz de escucha (no `127.0.0.1` si es desde otro equipo), el puerto (por defecto `4713`) y la contraseña de administrador.
+  - Con aMule 2.3.x (la interfaz web antigua, amuleweb) no funciona: actualízalo o usa aMuTorrent.
+- **aMuTorrent:** dirección `http://IP:4000` y, si tiene usuarios activados, la **clave de API** de tu usuario (en aMuTorrent, **Ajustes → Gestión de usuarios**).
+
+Pulsa **Probar conexión** para cargar las categorías, elige una si quieres y pulsa **Guardar**. Recarga Hispashare: aparecerá la fila 🐳 **aMule remoto**.
+
 ## Favoritos
 
 1. Marca una película o serie con **☆ Añadir a favoritos** en su ficha, o con la ☆ que aparece al pasar el ratón por su carátula en la portada.
@@ -151,7 +168,7 @@ En Firefox, para que se sincronicen entre ordenadores tienes que tener activada 
 ## Privacidad
 
 - UIspa no recoge ni envía datos a ningún servidor propio ni de terceros. En Firefox lo declara así en su instalación (`data_collection_permissions: none`).
-- Solo se comunica con Hispashare, para obtener los enlaces que ya ofrece la web, con tu servidor Plex o Jellyfin y tu NAS Synology si los configuras.
+- Solo se comunica con Hispashare, para obtener los enlaces que ya ofrece la web, con tu servidor Plex o Jellyfin, tu NAS Synology y tu aMule remoto si los configuras.
 - Los favoritos se guardan donde elijas: en el almacenamiento sincronizado del navegador (viajan con tu cuenta de Firefox o de Google) o solo en tu navegador. Nunca van a ningún servidor de UIspa.
 - Las direcciones, credenciales y contraseñas se guardan únicamente en tu navegador; la contraseña del NAS viaja en el cuerpo de la petición, nunca en la dirección. Las consultas salen de la extensión, no de la página, así que la web nunca las ve. Del servidor solo se usan el tamaño y la resolución de los archivos, nunca sus rutas.
 
@@ -163,7 +180,7 @@ En Firefox, para que se sincronicen entre ordenadores tienes que tener activada 
 | `clipboardWrite` (y `offscreen` en Chrome) | Copiar enlaces al portapapeles, también desde atajos y menús |
 | `contextMenus` | Opciones del menú del botón derecho |
 | `storage` | Guardar la configuración, la apariencia y los favoritos (en tu navegador o sincronizados con tu cuenta, según elijas) |
-| Acceso opcional a la dirección de tu servidor o NAS | Solo se pide si configuras Plex, Jellyfin o Synology, y únicamente para esa dirección |
+| Acceso opcional a la dirección de tu servidor o NAS | Solo se pide si configuras Plex, Jellyfin, Synology o aMule remoto, y únicamente para esa dirección |
 
 ## Estructura
 
@@ -181,11 +198,12 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 |---|---|
 | `manifest.json` | Definición de la extensión |
 | `theme-early.js`, `theme.js`, `theme.css` | Rediseño de la web: apariencia, scroll infinito, versiones plegables y temporadas |
-| `content.js`, `content.css` | Botones de copiar y de enviar al NAS (también «los que faltan») y avisos |
+| `content.js`, `content.css` | Botones de copiar, eMule, aMule remoto y NAS (también «los que faltan») y avisos |
 | `media.js` | Marcas de Plex o Jellyfin en las fichas |
 | `background.js` | Segundo plano: atajos y menús |
 | `media-bg.js`, `plex-bg.js`, `jellyfin-bg.js` | Consultas al servidor multimedia |
 | `synology-bg.js` | Envío de enlaces a Download Station y exploración de carpetas |
+| `amule-bg.js` | Envío de enlaces a aMule remoto (amuleapi o aMuTorrent) |
 | `favorites.js` | Favoritos: estrellas, fila de la portada y aviso de novedades |
 | `setup-bg.js` | Abre el asistente de configuración al instalar |
 | `offscreen.html`, `offscreen.js` | Solo Chrome: copia al portapapeles desde segundo plano |
@@ -197,6 +215,10 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 - La coincidencia exacta con el servidor se basa en el tamaño que muestra la web, redondeado a dos decimales. Si renombras o recomprimes un archivo, aparecerá como «≈» u «otra calidad».
 
 ## Novedades
+
+**4.1.0**
+- **aMule remoto:** nueva fila 🐳 para mandar los enlaces a un aMule en Docker, en un NAS o en otro ordenador, todos de golpe. Funciona con aMule 3.1 o posterior directamente (amuleapi) o a través de aMuTorrent, con elección de categoría. Nuevo paso en el asistente.
+- La fila ▶ pasa a llamarse **eMule / aMule**: también sirve con aMule en el mismo ordenador.
 
 **4.0.0**
 - **Enviar a eMule:** botones ▶ en cada capítulo y «Seleccionados» / «Todos» en cada versión, que mandan todos los enlaces de un clic. Funciona también en Chrome y demás navegadores Chromium, incluido el botón «Ejecutar enlaces» de la web. Se pueden ocultar en los ajustes.

@@ -48,17 +48,23 @@ a.hc-site-btn { cursor: pointer; }
 .hc-grp-box { border-left-color: rgba(128,128,128,.35); }
 .hc-grp-copy.hc-grp-box { border-left-color: rgba(245,179,1,.55); }
 .hc-grp-emule.hc-grp-box { border-left-color: rgba(70,190,120,.6); }
+.hc-grp-amule.hc-grp-box { border-left-color: rgba(64,196,220,.6); }
 .hc-grp-nas.hc-grp-box { border-left-color: rgba(80,150,255,.6); }
 .hc-grp > a.BUTTON { margin: 0 !important; }
-.hc-grp-t { font-size: 12px; font-weight: 600; min-width: 74px; white-space: nowrap; }
+.hc-grp-t { font-size: 12px; font-weight: 600; min-width: 118px; white-space: nowrap; }
 .hc-grp-t[hidden] { display: none; }
 .hc-grp-copy .hc-grp-t { color: #f5b301; }
 .hc-grp-emule .hc-grp-t { color: #6fd39a; }
 .hc-grp-nas .hc-grp-t { color: #8ab8ff; }
+.hc-grp-amule .hc-grp-t { color: #5fd3e6; }
 html.hcm-light .hc-grp-copy .hc-grp-t { color: #9a6a00; }
 html.hcm-light .hc-grp-emule .hc-grp-t { color: #1d7a46; }
 html.hcm-light .hc-grp-nas .hc-grp-t { color: #1f5fbf; }
+html.hcm-light .hc-grp-amule .hc-grp-t { color: #0e7f93; }
 html.hcm a.BUTTON.hc-site-btn.hc-emule { background: rgba(70,190,120,.12) !important; border-color: rgba(70,190,120,.45); color: #6fd39a !important; }
+html.hcm a.BUTTON.hc-site-btn.hc-amule { background: rgba(64,196,220,.12) !important; border-color: rgba(64,196,220,.45); color: #5fd3e6 !important; }
+html.hcm.hcm-light a.BUTTON.hc-site-btn.hc-amule { background: rgba(14,127,147,.1) !important; border-color: rgba(14,127,147,.45); color: #0e7f93 !important; }
+.hc-amule-btn { margin-left: 4px; }
 html.hcm.hcm-light a.BUTTON.hc-site-btn.hc-emule { background: rgba(30,140,80,.1) !important; border-color: rgba(30,140,80,.45); color: #1d7a46 !important; }
 /* Jellyfin: mismo esquema en su color morado */
 .hc-plex-yes.hc-srv-jellyfin { background: #aa5cc3; color: #fff; }
@@ -133,3 +139,4 @@ html.hcm-light .hc-plex-no { color: #5f6878; border-color: #9aa3b4; }
 html.hcm-light .hc-plex-same, html.hcm-light .hc-plex-other, html.hcm-light .hc-plex-part { color: #9a6200; }
 html.hcm-light .hc-plex-same.hc-srv-jellyfin, html.hcm-light .hc-plex-other.hc-srv-jellyfin, html.hcm-light .hc-plex-part.hc-srv-jellyfin { color: #8a3fa6; }
 
+.hc-emule-btn { margin-left: 4px; }

@@ -25,7 +25,7 @@
     <p>UIspa rediseña Hispashare y te deja copiar los enlaces ed2k con un clic. Además puede:</p>
     <ul>
       <li>decirte qué capítulos o películas ya tienes en <b>Plex</b> o <b>Jellyfin</b>,</li>
-      <li>mandar descargas a tu <b>NAS Synology</b> (Download Station),</li>
+      <li>mandar descargas a tu <b>NAS Synology</b> (Download Station) o a un <b>aMule remoto</b> (Docker, NAS u otro ordenador, también con aMuTorrent),</li>
       <li>guardar tus <b>favoritos</b> y avisarte de sus novedades.</li>
     </ul>
     <p class="muted">Todo es opcional: en cada paso puedes pulsar <b>Omitir</b>. Puedes volver a abrir este asistente cuando quieras desde los ajustes.</p>
@@ -61,7 +61,7 @@
       </div>
     </div>
     <label class="check"><input id="lookInfinite" type="checkbox"> Cargar más títulos al llegar al final de la página (scroll infinito)</label>
-    <label class="check"><input id="emuleBtns" type="checkbox" checked> Mostrar los botones ▶ para abrir los enlaces en eMule</label>
+    <label class="check"><input id="emuleBtns" type="checkbox" checked> Mostrar los botones ▶ para abrir los enlaces en eMule o aMule instalado en este ordenador</label>
     <div id="lookStatus" role="status" class="muted small"></div>
   </section>
 
@@ -148,6 +148,57 @@
     </details>
   </section>
 
+
+  <section id="sec-amule">
+    <h2>aMule remoto</h2>
+    <p class="muted">Para un aMule que no está en este ordenador: en Docker, en un NAS o en otro equipo de casa. Si lo configuras, en cada versión aparece la fila 🐳 <b>aMule remoto</b> para mandarle los enlaces directamente, todos de un clic. Si aMule o eMule están en este mismo ordenador no hace falta: usa los botones ▶ eMule / aMule.</p>
+
+    <label>Conectar con</label>
+    <div class="choice" role="radiogroup" aria-label="Cómo conectar con aMule">
+      <label class="choice-opt"><input type="radio" name="amType" value="amuleapi" checked>
+        <span><b>aMule 3.1 o posterior</b><small>Directamente, por su interfaz web nueva (amuleapi). En Docker, la imagen ngosang/amule actualizada.</small></span></label>
+      <label class="choice-opt"><input type="radio" name="amType" value="amutorrent">
+        <span><b>aMuTorrent</b><small>Si gestionas aMule con aMuTorrent. Sirve también con versiones antiguas de aMule.</small></span></label>
+    </div>
+
+    <div class="cols">
+      <div>
+        <label for="amUrl">Dirección</label>
+        <input id="amUrl" type="url" placeholder="http://192.168.1.10:4711" autocomplete="off" spellcheck="false">
+      </div>
+      <div>
+        <label for="amPass" id="amPassLabel">Contraseña</label>
+        <input id="amPass" type="password" autocomplete="new-password">
+      </div>
+    </div>
+
+    <label for="amCat">Categoría <span class="opt">(opcional)</span></label>
+    <select id="amCat"><option value="">Por defecto</option></select>
+    <p class="muted small">Las categorías se cargan al probar la conexión.</p>
+
+    <div class="actions">
+      <button id="amTest" type="button" class="ghost">Probar conexión</button>
+      <button id="amSave" type="button">Guardar</button>
+      <button id="amClear" type="button" class="ghost danger">Desconectar</button>
+    </div>
+    <div id="amStatus" role="status"></div>
+
+    <details>
+      <summary>¿Cómo lo preparo?</summary>
+      <p class="muted small"><b>aMule 3.1 o posterior</b></p>
+      <ol>
+        <li><b>Docker (ngosang/amule):</b> pon una contraseña con la variable <code>WEBUI_PWD</code> y publica el puerto <code>4711</code>. Es la misma con la que entras en su interfaz web.</li>
+        <li><b>aMule normal en otro ordenador:</b> en <b>Preferencias → Controles remotos</b>, marca <b>«Run amuleapi (REST API) on startup»</b> y pon la interfaz de escucha (para usarlo desde otro equipo, no <code>127.0.0.1</code>), el puerto HTTP y la contraseña de administrador. Su puerto por defecto es el <code>4713</code>.</li>
+        <li>Usa la contraseña de administrador: la de invitado solo permite mirar. Con aMule 2.3.x (interfaz web «amuleweb») no funciona: actualízalo o usa aMuTorrent.</li>
+      </ol>
+      <p class="muted small"><b>aMuTorrent</b></p>
+      <ol>
+        <li><b>Dirección:</b> la de aMuTorrent, por defecto <code>http://IP-de-la-máquina:4000</code>.</li>
+        <li><b>Clave de API:</b> si tienes la identificación activada, en aMuTorrent ve a <b>Ajustes → Gestión de usuarios</b> y copia la clave de API de tu usuario (necesita permiso para añadir descargas). Si no tiene identificación, déjala vacía.</li>
+      </ol>
+    </details>
+    <p class="muted small">La contraseña o clave se guarda solo en este navegador y únicamente se envía a tu aMule.</p>
+  </section>
 
   <section id="sec-favs">
     <h2>Favoritos</h2>

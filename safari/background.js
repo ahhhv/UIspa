@@ -1,6 +1,6 @@
 // UIspa (Safari) · segundo plano: menús contextuales, atajos, botón de la
 // barra y consultas a Plex/Jellyfin.
-importScripts("plex-bg.js", "jellyfin-bg.js", "media-bg.js", "synology-bg.js", "setup-bg.js");
+importScripts("plex-bg.js", "jellyfin-bg.js", "media-bg.js", "synology-bg.js", "amule-bg.js", "setup-bg.js");
 
 const PATTERNS = [
   "*://hispashare.org/*", "*://*.hispashare.org/*",
