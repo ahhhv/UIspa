@@ -305,7 +305,7 @@ El código común (rediseño, botones y marcas) es idéntico en las tres carpeta
 1. Sube el número de versión en `chrome/manifest.json`, `firefox/manifest.json` y `safari/manifest.json`.
 2. Empaqueta Firefox: comprime el **contenido** de `firefox/` (no la carpeta) en un `.xpi`. Súbelo a firmar en [addons.mozilla.org](https://addons.mozilla.org/developers/) → UIspa → **Upload a New Version**, y descarga el firmado.
 3. Empaqueta Chrome: comprime la carpeta `chrome/` renombrada a `UIspa` como `UIspa-chrome.zip`.
-4. Crea una Release con la etiqueta `X.Y.Z` (sin «v», por ejemplo `4.0.0`) y adjunta `UIspa-chrome.zip` y el firmado renombrado a `UIspa-firefox.xpi`.
+4. Crea una Release con la etiqueta `X.Y.Z` (sin «v», por ejemplo `4.1.0`) y adjunta `UIspa-chrome.zip` y el firmado renombrado a `UIspa-firefox.xpi`.
 5. Añade la versión a `updates.json`, con el enlace a esa Release. Hasta que no lo hagas, Firefox no la instalará automáticamente.
 
 ## Licencia
