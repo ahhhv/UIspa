@@ -38,9 +38,8 @@ chrome.commands.onCommand.addListener(async (command) => {
   if (tab?.id) send(tab.id, { action: command });
 });
 
-chrome.action.onClicked.addListener((tab) => {
-  if (tab?.id) send(tab.id, { action: "copy-all" });
-});
+// El botón de la barra abre los ajustes
+chrome.action.onClicked.addListener(() => chrome.runtime.openOptionsPage());
 
 // ------------------------------------------------------------ portapapeles
 let creating = null;

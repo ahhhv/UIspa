@@ -22,7 +22,7 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 - Para copiar un solo capítulo: márcalo y pulsa «Seleccionados», o haz Alt+clic en su nombre.
 - «Seleccionados» y «Todos» en cada versión de una serie; «Copiar enlace» en las películas.
 - Botón «Copiar» en la ventana de enlaces de la propia web.
-- Atajos: `Alt+Shift+C` copia todos los enlaces de la página y `Alt+Shift+S` los capítulos marcados. También desde el menú del botón derecho o el icono de la barra.
+- Atajos: `Alt+Shift+C` copia todos los enlaces de la página y `Alt+Shift+S` los capítulos marcados. También desde el menú del botón derecho.
 - Los atajos se pueden cambiar en `chrome://extensions/shortcuts` (Chrome) o en `about:addons` → rueda dentada ⚙ → **Gestionar atajos de teclado de extensiones** (Firefox).
 
 **Abrir en eMule o aMule (en este ordenador)**
@@ -121,7 +121,7 @@ Si prefieres hacerlo a mano:
 
 1. Abre los ajustes de UIspa de cualquiera de estas formas:
    - En Hispashare, menú **Más → ⚙ Ajustes de la extensión**.
-   - **Chrome:** clic derecho en el icono de UIspa → **Opciones**.
+   - Clic en el icono de UIspa en la barra del navegador (Chrome, Firefox y Safari).
    - **Firefox:** `about:addons` → UIspa → pestaña **Opciones**.
 2. En la pestaña **Plex / Jellyfin**, elige **Plex** o **Jellyfin** (puedes configurar los dos; un punto verde indica los conectados) y escribe la dirección de tu servidor, por ejemplo `http://192.168.1.50:32400` (Plex) o `http://192.168.1.50:8096` (Jellyfin).
 3. Pega la credencial:
@@ -230,6 +230,7 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 - **Botones también arriba:** en versiones con muchos capítulos, las filas de Copiar, eMule / aMule, descarga remota y NAS (y «Seleccionar todos») salen también encima de la lista, para no tener que bajar hasta el final.
 - Se quitan los botones pequeños de cada capítulo (📋 ▶ 🐳 📥): ahora se marcan los capítulos y se usa «Seleccionados». Alt+clic en el nombre sigue copiando su enlace.
 - Streaming con tema claro: la cabecera destacada es clara y se lee bien.
+- El icono de UIspa en la barra del navegador abre ahora los **ajustes de la extensión** (antes copiaba todos los enlaces de la página; eso sigue en el menú del botón derecho y con `Alt+Shift+C`).
 - Arreglado: con algunos diseños el scroll infinito podía quedarse parado.
 
 **4.2.0**

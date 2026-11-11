@@ -31,7 +31,8 @@ api.commands.onCommand.addListener(async (command) => {
   if (tab) send(tab.id, { action: command });
 });
 
-api.browserAction.onClicked.addListener((tab) => send(tab.id, { action: "copy-all" }));
+// El botón de la barra abre los ajustes
+api.browserAction.onClicked.addListener(() => api.runtime.openOptionsPage());
 
 // Copia de respaldo: el content script puede perder el "gesto de usuario"
 // tras esperar la petición AJAX; el background tiene clipboardWrite.

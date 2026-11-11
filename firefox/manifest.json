@@ -89,7 +89,7 @@
       "16": "icons/icon16.png",
       "32": "icons/icon32.png"
     },
-    "default_title": "UIspa: copiar todos los enlaces de la página"
+    "default_title": "Ajustes de UIspa"
   },
   "browser_specific_settings": {
     "gecko": {
