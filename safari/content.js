@@ -227,7 +227,7 @@
       b.addEventListener("pointerenter", warm);
       b.addEventListener("focus", warm);
     }
-    const ui = { last: buttons[buttons.length - 1], rows: new Map() };
+    const ui = { last: buttons[buttons.length - 1] };
     uiByGroup.set(g.id, ui);
     if (g.btn) {
       // series: junto a "Mostrar seleccionados"
@@ -241,32 +241,15 @@
       if (table) table.after(bar); else g.rows[0].link.after(bar);
     }
 
-    // Botón 📋 en cada fila
+    // Alt+clic en el nombre de un capítulo = copiar su enlace en vez de abrir el popup
     for (const { i, link, tr } of g.rows) {
       if (link.dataset.hcDone) continue;
       link.dataset.hcDone = "1";
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "hc-copy-btn";
-      b.title = "Copiar enlace ed2k";
-      b.textContent = "📋";
-      b.addEventListener("click", (e) => {
-        e.preventDefault(); e.stopPropagation();
-        copyGroup(g, b, i, "", () => {
-          b.textContent = "✔";
-          setTimeout(() => (b.textContent = "📋"), 1200);
-        });
-      });
       (tr || link).addEventListener("pointerenter", warm);
-      b.addEventListener("focus", warm);
-      link.after(b);
-      ui.rows.set(i, b);
-
-      // Alt+clic en el nombre = copiar en vez de abrir el popup
       link.addEventListener("click", (e) => {
         if (!e.altKey) return;
         e.preventDefault(); e.stopImmediatePropagation();
-        b.click();
+        copyGroup(g, link, i, "");
       }, true);
     }
   }
@@ -281,6 +264,7 @@
   let openPop = null;
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   async function pickFolder(anchor) {
+    if (proxyAnchor?.isConnected) anchor = proxyAnchor;
     openPop?.cancel();
     let st = {};
     try { st = (await api.runtime.sendMessage({ action: "ds-status" })) || {}; } catch (_) {}
@@ -477,17 +461,6 @@
     buttons.forEach((b) => b.classList.add("hc-nas"));
     (ui.lastEmule || ui.missingCopy || ui.last).after(...buttons.flatMap((b) => [document.createTextNode(" "), b]));
     ui.lastNas = buttons[buttons.length - 1];
-    for (const { i } of g.rows) {
-      const copy = ui.rows.get(i);
-      if (!copy) continue;
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "hc-copy-btn hc-nas-btn";
-      b.title = "Enviar a Download Station";
-      b.textContent = "📥";
-      b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); sendToNas(g, b, i); });
-      copy.after(b);
-    }
   }
 
   // ---------------------------------------------------------------- descarga remota
@@ -530,19 +503,6 @@
       : makeSiteButton("Todos", "Enviar todos los enlaces de esta versión a la descarga remota", (b) => sendToAmule(g, b, "all")));
     buttons.forEach((b) => { b.classList.add("hc-amule"); b.addEventListener("pointerenter", warm); });
     ui.last.after(...buttons.flatMap((b) => [document.createTextNode(" "), b]));
-    for (const { i } of g.rows) {
-      const copy = ui.rows.get(i);
-      if (!copy) continue;
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "hc-copy-btn hc-amule-btn";
-      b.title = "Enviar a la descarga remota";
-      b.textContent = "🐳";
-      b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); sendToAmule(g, b, i); });
-      // detrás del ▶ de eMule si lo hay
-      const after = copy.parentElement.querySelector(".hc-emule-btn") || copy;
-      after.after(b);
-    }
   }
 
   // ---------------------------------------------------------------- lo que me falta
@@ -674,17 +634,6 @@
     buttons.forEach((b) => { b.classList.add("hc-emule"); b.addEventListener("pointerenter", warm); b.addEventListener("focus", warm); });
     ui.last.after(...buttons.flatMap((b) => [document.createTextNode(" "), b]));
     ui.lastEmule = buttons[buttons.length - 1];
-    for (const { i } of g.rows) {
-      const copy = ui.rows.get(i);
-      if (!copy) continue;
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "hc-copy-btn hc-emule-btn";
-      b.title = "Abrir en eMule";
-      b.textContent = "▶";
-      b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); sendToEmule(g, b, i); });
-      copy.after(b);
-    }
   }
 
   async function copyAllPage() {
@@ -780,8 +729,44 @@
     for (const n of [...bar.parentElement.childNodes]) if (n.nodeType === 3 && !n.textContent.trim()) n.remove();
   }
 
+  // Con muchos capítulos, la misma barra también encima de la lista: es una
+  // copia que se mantiene al día y cuyos botones pulsan los de abajo.
+  const TOP_MIN = 8;
+  let proxyAnchor = null;
+  function mirrorBar(g) {
+    const ui = uiByGroup.get(g.id);
+    const bar = ui?.last?.closest(".hc-bar");
+    if (!bar || g.rows.length < TOP_MIN || ui.top?.isConnected) return;
+    const table = g.rows[0].tr?.closest("table");
+    if (!table || table.contains(bar)) return;
+    const top = document.createElement("div");
+    top.className = "hc-bar hc-bar-top";
+    const sync = () => {
+      const kids = [...bar.children].map((c) => c.cloneNode(true));
+      for (const k of kids) for (const n of [k, ...k.querySelectorAll("*")]) {
+        n.removeAttribute("id"); n.removeAttribute("onclick");
+        if (n.tagName === "A") n.setAttribute("href", "#");
+      }
+      top.replaceChildren(...kids);
+    };
+    top.addEventListener("click", (e) => {
+      const a = e.target.closest("a");
+      if (!a) return;
+      e.preventDefault();
+      const orig = [...bar.querySelectorAll("a")][[...top.querySelectorAll("a")].indexOf(a)];
+      if (!orig) return;
+      proxyAnchor = a;
+      try { orig.click(); } finally { proxyAnchor = null; }
+    });
+    top.addEventListener("pointerenter", () => prefetch(g));
+    new MutationObserver(sync).observe(bar, { subtree: true, childList: true, characterData: true, attributes: true });
+    sync();
+    table.before(top);
+    ui.top = top;
+  }
+
   function scan() {
-    findGroups().forEach((g) => { enhanceGroup(g); enhanceEmule(g); enhanceAmule(g); enhanceNas(g); enhanceMissing(g); arrangeBar(g); });
+    findGroups().forEach((g) => { enhanceGroup(g); enhanceEmule(g); enhanceAmule(g); enhanceNas(g); enhanceMissing(g); arrangeBar(g); mirrorBar(g); });
     enhancePopup();
   }
   scan();

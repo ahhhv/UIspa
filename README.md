@@ -9,37 +9,39 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 **Rediseño**
 - Tema oscuro, claro o automático (como el sistema), con una barra superior compacta: buscador, géneros, «Popular» y tu cuenta.
 - Portada y búsquedas en cuadrícula de carátulas, con el título, la nota, el año y los géneros sobre la propia carátula. El borde y la etiqueta de cada tarjeta indican el tipo con su color e icono (película, serie, documental o música), y las temporadas salen como etiqueta aparte («Temp. 1 a 4»). Las carátulas y el texto pueden ser pequeños, medianos o grandes.
+- Cuatro diseños para el listado: **Rejilla** de carátulas, **Streaming** (un título destacado arriba y una fila deslizable por tipo), **Lista** compacta (una línea por título) y **Revista** (carátula con la sinopsis al lado).
+- Filtro rápido encima del listado: **Todo · Películas · Series · Documentales · Música**, con cuántos hay de cada tipo.
 - Scroll infinito: al llegar al final se cargan más títulos sin cambiar de página (se puede desactivar y volver a la paginación).
 - Ficha de cada título con la carátula grande, notas de IMDb y usuarios, ficha técnica, sinopsis (con los premios aparte, si los hay) y reparto, y los comentarios justo debajo.
 - Descargas ordenadas: cada versión aparece con un resumen (archivos, tamaño total, calidad, ripeador y fecha) y se puede plegar o desplegar con un clic; al entrar salen desplegadas. En series con varias temporadas, pestañas para ver solo una.
-- Los botones de cada versión van en filas: los de la web, 📋 Copiar, ▶ eMule y 📥 NAS.
+- Los botones de cada versión van en filas: los de la web, 📋 Copiar, ▶ eMule y 📥 NAS. Si la versión tiene muchos capítulos, salen también encima de la lista.
 - Diseño adaptable a pantallas pequeñas y texto ampliado.
-- Botón ◐ de la barra: tema, tamaño de carátulas, scroll infinito y volver al diseño original.
+- Botón ◐ de la barra: tema, diseño, tamaño de carátulas, scroll infinito y volver al diseño original.
 
 **Copiar enlaces**
-- Botón 📋 junto a cada capítulo o archivo.
+- Para copiar un solo capítulo: márcalo y pulsa «Seleccionados», o haz Alt+clic en su nombre.
 - «Seleccionados» y «Todos» en cada versión de una serie; «Copiar enlace» en las películas.
 - Botón «Copiar» en la ventana de enlaces de la propia web.
 - Atajos: `Alt+Shift+C` copia todos los enlaces de la página y `Alt+Shift+S` los capítulos marcados. También desde el menú del botón derecho o el icono de la barra.
 - Los atajos se pueden cambiar en `chrome://extensions/shortcuts` (Chrome) o en `about:addons` → rueda dentada ⚙ → **Gestionar atajos de teclado de extensiones** (Firefox).
 
 **Abrir en eMule o aMule (en este ordenador)**
-- Botón ▶ junto a cada capítulo o archivo, y «Seleccionados» / «Todos» en cada versión («Abrir en eMule» en las películas). Se mandan todos de un solo clic.
+- «Seleccionados» / «Todos» en cada versión («Abrir en eMule» en las películas). Se mandan todos de un solo clic.
 - Con aMule, el sistema tiene que saber abrir los enlaces ed2k con él: en las versiones actuales de aMule se activa en **Preferencias → General** (en Mac, imprescindible).
 - También funciona en Chrome, Brave, Edge y demás navegadores basados en Chromium, incluido el botón «Ejecutar enlaces» de la propia web, que en ellos no hacía nada.
 - Se pueden ocultar en los ajustes (**Descargas → En este ordenador**).
 
 **Descarga remota (opcional)**
-- Para aMule en Docker, en un NAS o en otro ordenador, aMuTorrent o Rucio: botón 🐳 junto a cada capítulo y «Seleccionados» / «Todos» en cada versión. Se mandan todos de golpe, desde cualquier navegador.
+- Para aMule en Docker, en un NAS o en otro ordenador, aMuTorrent o Rucio: fila 🐳 con «Seleccionados» / «Todos» en cada versión. Se mandan todos de golpe, desde cualquier navegador.
 - Se conecta directamente con **aMule 3.1 o posterior** (su interfaz web nueva, amuleapi), a través de **aMuTorrent** o con **Rucio**. Puedes elegir la categoría.
 
 **Enviar a Synology Download Station (opcional)**
-- Botón 📥 junto a cada capítulo o archivo, y «Seleccionados» / «Todos» en cada versión.
+- «Seleccionados» / «Todos» en cada versión.
 - Al enviar eliges la carpeta navegando por las carpetas del NAS, o escribiéndola. Se abre en la última que usaste, tienes atajos a la carpeta por defecto y a las recientes, y puedes crear carpetas nuevas.
 
 **Favoritos**
 - Botón **☆ Añadir a favoritos** en cada ficha (pasa a **★ En favoritos**, en dorado) y una estrella ☆ en las carátulas de la portada al pasar el ratón.
-- Arriba de la portada, un panel destacado **«Tus favoritos»** con sus carátulas, el tipo y el año, y flechas para recorrerlos si hay muchos. Los que tienen novedades salen primero.
+- Arriba de la portada, un panel destacado **«Tus favoritos»** con las mismas tarjetas que el listado (siguen el tamaño de carátulas que elijas) y flechas para recorrerlos si hay muchos. Se ordenan por su **última actualización** (la fecha de su enlace más reciente), que sale en cada tarjeta.
 - Una vez al día, al abrir la portada, UIspa mira si tus favoritos tienen versiones o capítulos nuevos y los marca como **nuevo** («nueva versión», «+2 archivos») hasta que abres su ficha.
 - Tú eliges dónde se guardan: **en tu cuenta del navegador** (Firefox o Google), para verlos en todos tus ordenadores, o **solo en este navegador**. Al cambiar de opción se mueven solos. En los ajustes también puedes verlos, quitarlos, exportarlos e importarlos.
 
@@ -103,9 +105,12 @@ Limitaciones en Safari: los botones de copiar funcionan igual que en los otros n
 Pulsa el botón ◐ de la barra superior de Hispashare (o ve a la pestaña **Apariencia** de los ajustes de UIspa) para elegir:
 
 - **Tema:** oscuro, claro o automático (sigue el de tu sistema).
+- **Diseño:** Rejilla, Streaming, Lista o Revista.
 - **Carátulas:** pequeñas, medianas o grandes.
 - **Título y datos:** tamaño del texto de las tarjetas (pequeño, mediano o grande).
 - **Cargar más títulos al bajar:** scroll infinito en la portada y las búsquedas; si lo desactivas, vuelve la paginación.
+Encima del listado tienes el **filtro rápido** para ver solo películas, series, documentales o música. Se mantiene mientras navegas por la web y, si con el filtro quedan pocos títulos, carga más páginas solo.
+
 - **Volver al diseño original:** quita el rediseño; para recuperarlo, pulsa «✨ Vista moderna» abajo a la derecha.
 
 ## Conectar con Plex o Jellyfin
@@ -158,7 +163,7 @@ Pulsa **Probar conexión** para cargar las categorías, elige una si quieres y p
 ## Favoritos
 
 1. Marca una película o serie con **☆ Añadir a favoritos** en su ficha, o con la ☆ que aparece al pasar el ratón por su carátula en la portada.
-2. En la portada (primera página de Novedades) verás el panel **«Tus favoritos»**. Para quitar uno, pulsa su ★.
+2. En la portada (primera página de Novedades) verás el panel **«Tus favoritos»**, ordenado por la última actualización de cada uno. Para quitar uno, pulsa su ★.
 3. En los ajustes, pestaña **Favoritos**, puedes:
    - elegir **dónde se guardan**: en tu cuenta del navegador (sincronizados entre ordenadores) o solo en este navegador. Al cambiar, se mueven solos;
    - activar o desactivar el **aviso de novedades** (se comprueba una vez al día al abrir la portada);
@@ -216,6 +221,16 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 - La coincidencia exacta con el servidor se basa en el tamaño que muestra la web, redondeado a dos decimales. Si renombras o recomprimes un archivo, aparecerá como «≈» u «otra calidad».
 
 ## Novedades
+
+**4.3.0**
+- **Diseños del listado:** además de la rejilla, **Streaming**, **Lista** compacta y **Revista**. Se eligen en el botón ◐ o en Ajustes → Apariencia.
+- **Filtro rápido** por tipo encima del listado (películas, series, documentales, música), con contador y carga automática de más páginas si hace falta.
+- **Favoritos por última actualización:** cada favorito muestra cuándo se publicó su último enlace y el panel se ordena por eso. Las novedades se detectan mejor, también sin entrar en cada ficha.
+- Las tarjetas de favoritos son las mismas que las del listado y siguen el tamaño de carátulas y de texto.
+- **Botones también arriba:** en versiones con muchos capítulos, las filas de Copiar, eMule / aMule, descarga remota y NAS (y «Seleccionar todos») salen también encima de la lista, para no tener que bajar hasta el final.
+- Se quitan los botones pequeños de cada capítulo (📋 ▶ 🐳 📥): ahora se marcan los capítulos y se usa «Seleccionados». Alt+clic en el nombre sigue copiando su enlace.
+- Streaming con tema claro: la cabecera destacada es clara y se lee bien.
+- Arreglado: con algunos diseños el scroll infinito podía quedarse parado.
 
 **4.2.0**
 - **Rucio:** la descarga remota (antes «aMule remoto») admite también Rucio, el cliente P2P con acceso a la red Kad de eMule, con usuario y contraseña opcionales si está detrás de un proxy. La fila 🐳 pasa a llamarse **Descarga remota**.

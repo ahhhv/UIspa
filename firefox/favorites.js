@@ -71,6 +71,67 @@
       files ? `+${files} ${files === 1 ? "archivo" : "archivos"}` : null].filter(Boolean).join(" · ");
   }
 
+  // ------------------------------------------------------------ fechas de actualización
+  // Ficha: cada versión pone «eLink puesto: 3 meses y 24 días (16/07/2026)».
+  // La más reciente es la última vez que se publicó algo en ese título.
+  function lastUpdate(doc) {
+    let max = 0;
+    const text = (doc.body || doc).textContent || "";
+    for (const m of text.matchAll(/eLink puesto:[^()]*\((\d{1,2})\/(\d{1,2})\/(\d{4})\)/g)) {
+      const t = new Date(+m[3], +m[2] - 1, +m[1], 12).getTime();
+      if (t > max) max = t;
+    }
+    return max;
+  }
+  // Listados: «Última publicación: hoy / ayer / 5 días / 2 semanas / 3 meses y 4 días…»
+  // Se pasa a una fecha aproximada (a mediodía, para no bailar por la hora).
+  function fromRelative(raw) {
+    const s = String(raw || "").toLowerCase();
+    if (!s) return 0;
+    const day = 864e5, noon = new Date(); noon.setHours(12, 0, 0, 0);
+    if (/^hoy/.test(s)) return noon.getTime();
+    if (/^ayer/.test(s)) return noon.getTime() - day;
+    const exact = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (exact) return new Date(+exact[3], +exact[2] - 1, +exact[1], 12).getTime();
+    let days = 0, any = false;
+    for (const [, n, u] of s.matchAll(/(\d+)\s*(a[ñn]o|mes|semana|d[ií]a|hora|minuto)/g)) {
+      any = true;
+      days += +n * ({ "a": 365, "m": 30, "s": 7, "d": 1 }[u[0]] || 0);
+    }
+    return any ? noon.getTime() - days * day : 0;
+  }
+  function whenText(t) {
+    if (!t) return "";
+    const day = 864e5, today = new Date(); today.setHours(12, 0, 0, 0);
+    const d = Math.round((today - t) / day);
+    if (d <= 0) return "hoy";
+    if (d === 1) return "ayer";
+    if (d < 7) return `hace ${d} días`;
+    const date = new Date(t);
+    return date.toLocaleDateString("es-ES", { day: "numeric", month: "short", ...(date.getFullYear() !== today.getFullYear() ? { year: "numeric" } : {}) });
+  }
+
+  // Datos para pintar la tarjeta (nota, géneros, temporadas) leídos del HTML
+  // original de una ficha: el que se descarga al revisar novedades o el de la
+  // página abierta (la vista moderna lo deja oculto, no lo borra).
+  const splitTitle = (t) => globalThis.__uispa?.splitTitle?.(t) || { title: t, tag: null };
+  function metaFromDoc(doc) {
+    const r2 = doc.querySelector("td.R2");
+    const h1 = r2?.querySelector("h1");
+    if (!h1) return {};
+    const small = txt(h1.querySelector("small"));
+    const { title, tag } = splitTitle(txt(h1).replace(small, "").trim());
+    const stars = doc.querySelector("#STARS_CONTAINER .SEP");
+    const rating = (txt(stars).match(/(\d+(?:[.,]\d+)?)\s*$/) || [])[1]?.replace(",", ".") || null;
+    const genreP = [...r2.querySelectorAll("p.INFO")].find((p) => /^G[ée]nero/i.test(txt(p.querySelector("strong"))));
+    const genres = genreP ? [...genreP.querySelectorAll("a")].map(txt).filter(Boolean).slice(0, 2) : [];
+    const out = { title, tag, genres };
+    const year = (small.match(/\b(19|20)\d{2}\b/) || [])[0];
+    if (year) out.year = year;
+    if (rating) out.rating = rating;
+    return out;
+  }
+
   // ------------------------------------------------------------ estrella
   function starButton(cls, id, getData) {
     const b = h("button", cls);
@@ -132,13 +193,16 @@
     const year = (eyebrow.match(/\b(19|20)\d{2}\b/) || txt($("td.R2 h1 small")).match(/\b(19|20)\d{2}\b/) || [])[0] || "";
     const type = /serie/i.test(eyebrow) ? "series" : /docu/i.test(eyebrow) ? "doc" : /m[uú]sica/i.test(eyebrow) ? "music" : "movie";
     const sig = signature(document);
-    const data = () => ({ url: location.pathname + location.search, title, poster: abs(poster), year, type, seen: sig, sig, checked: Date.now(), news: null });
+    const updated = lastUpdate(document);
+    const meta = { ...splitTitle(title), ...metaFromDoc(document) };
+    const data = () => ({ url: location.pathname + location.search, title, poster: abs(poster), year, type, ...meta, seen: sig, sig, updated, seenUpdated: updated, checked: Date.now(), news: null });
     const btn = starButton("hcm-fav-btn", id, data);
     const slot = $(".hcm-scores") || $("td.R2 h1");
     if (slot?.matches(".hcm-scores")) slot.append(btn); else slot?.after(btn);
     // Al abrir la ficha de un favorito, lo nuevo pasa a «visto»
     if (isFav(id)) {
-      const f = { ...favs[id], title, poster: abs(poster) || favs[id].poster, year: year || favs[id].year, seen: sig, sig, checked: Date.now(), news: null };
+      const f = { ...favs[id], title, poster: abs(poster) || favs[id].poster, year: year || favs[id].year, ...meta, seen: sig, sig,
+        updated: updated || favs[id].updated || 0, seenUpdated: updated || favs[id].updated || 0, checked: Date.now(), news: null };
       favs[id] = f;
       save([f]);
     }
@@ -156,10 +220,32 @@
         poster: abs(card.querySelector("img")?.getAttribute("src")),
         year: (txt(card.querySelector(".card-meta")).match(/\b(19|20)\d{2}\b/) || [])[0] || "",
         type: card.dataset.type || "movie",
-        seen: "", sig: "", checked: 0, news: null
+        ...(card.__uispa ? { title: card.__uispa.title, tag: card.__uispa.tag, genres: card.__uispa.genres, rating: card.__uispa.rating } : {}),
+        seen: "", sig: "", updated: fromRelative(card.dataset.last), seenUpdated: 0, checked: 0, news: null
       });
       (card.querySelector(".poster-wrapper") || card).append(starButton("hcm-fav-toggle", id, data));
     }
+    noteListDates(root);
+  }
+
+  // Los listados (portada, búsquedas) dicen cuándo se publicó algo por última
+  // vez en cada título. Si un favorito sale con una fecha más reciente que la
+  // que conocemos, se apunta y se revisa su ficha en cuanto se pueda.
+  function noteListDates(root = document) {
+    const changed = [];
+    for (const card of $$("a.hcm-card[data-last]", root)) {
+      const id = titleId(card.getAttribute("href"));
+      const f = id && favs[id];
+      if (!f) continue;
+      const t = fromRelative(card.dataset.last);
+      // margen de un día: «hoy»/«ayer» son aproximados
+      if (t && t > (f.updated || 0) + 864e5 / 2) changed.push({ ...f, updated: t, checked: 0 });
+    }
+    if (!changed.length) return;
+    for (const f of changed) favs[f.id] = f;
+    save(changed);
+    renderRow();
+    checkNews();
   }
 
   // ------------------------------------------------------------ fila de favoritos (portada)
@@ -175,7 +261,8 @@
     if (!redesign() || !isHome()) return;
     const grid = $(".hcm-grid");
     if (!grid) return;
-    const list = Object.values(favs).sort((a, b) => (!!b.news - !!a.news) || (b.added || 0) - (a.added || 0));
+    // los más recientemente actualizados primero (los que no tienen fecha, al final)
+    const list = Object.values(favs).sort((a, b) => (b.updated || 0) - (a.updated || 0) || (!!b.news - !!a.news) || (b.added || 0) - (a.added || 0));
     if (!row) {
       row = h("section", "hcm-favs");
       const toolbar = $(".hcm-toolbar");
@@ -199,22 +286,8 @@
     nav.append(prev, next);
     head.append(nav);
     const strip = h("div", "hcm-favs-row");
-    for (const f of list) {
-      const a = h("a", "hcm-fav-item" + (f.news ? " hcm-fav-new" : ""));
-      a.href = f.url;
-      a.dataset.type = f.type || "movie";
-      a.title = f.title + (f.year ? ` (${f.year})` : "") + (f.news ? ` · ${f.news}` : "");
-      const pic = h("div", "hcm-fav-pic");
-      if (f.poster) { const img = h("img"); img.src = f.poster; img.alt = ""; img.loading = "lazy"; pic.append(img); }
-      if (f.news) pic.append(h("span", "hcm-fav-badge", "nuevo"));
-      pic.append(starButton("hcm-fav-toggle", f.id, () => f));
-      const cap = h("div", "hcm-fav-cap");
-      cap.append(h("span", "hcm-fav-name", f.title));
-      cap.append(h("span", "hcm-fav-what", f.news || [{ movie: "Película", series: "Serie", doc: "Documental", music: "Música" }[f.type], f.year].filter(Boolean).join(" · ")));
-      pic.append(cap);
-      a.append(pic);
-      strip.append(a);
-    }
+    const build = globalThis.__uispa?.buildCard;
+    for (const f of list) strip.append(build ? favCard(f, build) : favItem(f));
     row.append(head, strip);
     strip.scrollLeft = keep;
     const step = () => Math.max(200, strip.clientWidth * 0.8);
@@ -233,13 +306,53 @@
     requestAnimationFrame(arrows);
   }
 
+  // Tarjeta del favorito: la misma de la rejilla (sigue el tamaño de carátula y
+  // de texto de los ajustes), con la novedad y la fecha de la última publicación.
+  function favCard(f, build) {
+    const recent = f.updated && Date.now() - f.updated < 2 * 864e5;
+    const when = f.updated ? "↻ " + whenText(f.updated) : "";
+    const extra = (f.news || when) ? h("div", "card-fav-when" + (recent ? " hcm-fav-recent" : ""),
+      [f.news ? "✨ " + f.news : null, when].filter(Boolean).join(" · ")) : null;
+    const { title, tag } = f.tag !== undefined ? { title: f.title, tag: f.tag } : splitTitle(f.title);
+    const a = build({ href: f.url, title, year: f.year, type: f.type, tag, genres: f.genres || [], rating: f.rating,
+      poster: f.poster, badge: f.news ? "nuevo" : null, extra });
+    a.classList.add("hcm-fav-card");
+    if (f.news) a.classList.add("hcm-fav-new");
+    a.title += (f.news ? ` · ${f.news}` : "") + (f.updated ? ` · actualizado ${whenText(f.updated)}` : "");
+    a.querySelector(".poster-wrapper").append(starButton("hcm-fav-toggle", f.id, () => f));
+    return a;
+  }
+  // Por si la vista moderna aún no ha cargado sus tarjetas
+  function favItem(f) {
+    const a = h("a", "hcm-fav-item" + (f.news ? " hcm-fav-new" : ""));
+    a.href = f.url;
+    a.dataset.type = f.type || "movie";
+    const pic = h("div", "hcm-fav-pic");
+    if (f.poster) { const img = h("img"); img.src = f.poster; img.alt = ""; img.loading = "lazy"; pic.append(img); }
+    if (f.news) pic.append(h("span", "hcm-fav-badge", "nuevo"));
+    pic.append(starButton("hcm-fav-toggle", f.id, () => f));
+    const cap = h("div", "hcm-fav-cap");
+    cap.append(h("span", "hcm-fav-name", f.title));
+    cap.append(h("span", "hcm-fav-what", f.news || [{ movie: "Película", series: "Serie", doc: "Documental", music: "Música" }[f.type], f.year].filter(Boolean).join(" · ")));
+    if (f.updated) cap.append(h("span", "hcm-fav-when", "↻ " + whenText(f.updated)));
+    pic.append(cap);
+    a.append(pic);
+    return a;
+  }
+
   // ------------------------------------------------------------ novedades (una vez al día)
   const DAY = 20 * 3600 * 1000;
+  let checking = false;
   async function checkNews() {
-    if (!isHome()) return;
+    if (!isHome() || checking) return;
+    checking = true;
+    try { await runCheck(); } finally { checking = false; }
+  }
+  async function runCheck() {
     const { favCheckOff } = await api.storage.local.get("favCheckOff");
     if (favCheckOff) return;
-    const due = Object.values(favs).filter((f) => Date.now() - (f.checked || 0) > DAY).slice(0, 30);
+    // favoritos de antes de guardar la fecha (sin «updated»): se revisan ya, una vez
+    const due = Object.values(favs).filter((f) => f.updated === undefined || Date.now() - (f.checked || 0) > DAY).slice(0, 30);
     if (!due.length) return;
     const changed = [];
     for (const f of due) {
@@ -248,11 +361,17 @@
         if (!res.ok) continue;
         const doc = new DOMParser().parseFromString(await res.text(), "text/html");
         const sig = signature(doc);
-        if (!sig) { changed.push({ ...f, checked: Date.now() }); continue; }   // sin descargas (o sin sesión)
+        if (!sig) { changed.push({ ...f, updated: f.updated || 0, checked: Date.now() }); continue; }   // sin descargas (o sin sesión)
+        const updated = lastUpdate(doc) || f.updated || 0;
+        const meta = metaFromDoc(doc);
         // primer chequeo de un favorito marcado desde la portada: se toma como punto de partida
         const seen = f.seen || sig;
-        const news = diff(seen, sig) || f.news || null;
-        changed.push({ ...f, seen, sig, news, checked: Date.now() });
+        // la primera vez que se conoce la fecha, es el punto de partida
+        const seenUpdated = f.seenUpdated || updated;
+        // si ha cambiado la huella, se dice qué; si solo ha cambiado la fecha
+        // (enlaces sustituidos, misma cantidad), «actualizado»
+        const news = diff(seen, sig) || (seenUpdated && updated > seenUpdated + 864e5 / 2 ? "actualizado" : null) || f.news || null;
+        changed.push({ ...f, ...meta, seen, sig, updated, seenUpdated, news, checked: Date.now() });
       } catch (_) { /* sin conexión: se reintenta otro día */ }
       await new Promise((r) => setTimeout(r, 1200));     // sin agobiar a la web
     }
@@ -271,7 +390,7 @@
       renderRow();
       // tarjetas que llegan con el scroll infinito
       const grid = $(".hcm-grid");
-      if (grid) new MutationObserver(() => decorateCards(grid)).observe(grid, { childList: true });
+      if (grid) new MutationObserver(() => decorateCards(grid)).observe(grid, { childList: true, subtree: true });   // también dentro de las filas del diseño «Streaming»
     }
     checkNews();
   }

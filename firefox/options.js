@@ -330,11 +330,12 @@ api.storage.local.get(["server", "plexUrl", "plexToken", "jfUrl", "jfKey"]).then
 }
 
 // ------------------------------------------------------------ apariencia
-const LOOK_DEFAULT = { theme: "dark", size: "m", titleSize: "m", infinite: true };
+const LOOK_DEFAULT = { theme: "dark", layout: "grid", size: "m", titleSize: "m", infinite: true };
 async function loadLook() {
   const { look } = await api.storage.local.get("look");
   const l = { ...LOOK_DEFAULT, ...(look || {}) };
   $("lookTheme").value = l.theme;
+  $("lookLayout").value = l.layout || "grid";
   $("lookSize").value = l.size;
   $("lookTitleSize").value = l.titleSize || "m";
   $("lookInfinite").checked = !!l.infinite;
@@ -342,6 +343,7 @@ async function loadLook() {
 async function saveLook() {
   const look = {
     theme: $("lookTheme").value,
+    layout: $("lookLayout").value,
     size: $("lookSize").value,
     titleSize: $("lookTitleSize").value,
     infinite: $("lookInfinite").checked
@@ -349,7 +351,7 @@ async function saveLook() {
   await api.storage.local.set({ look });
   $("lookStatus").textContent = "Guardado. Se aplica al momento en las pestañas de Hispashare abiertas.";
 }
-for (const id of ["lookTheme", "lookSize", "lookTitleSize", "lookInfinite"]) $(id).addEventListener("change", saveLook);
+for (const id of ["lookTheme", "lookLayout", "lookSize", "lookTitleSize", "lookInfinite"]) $(id).addEventListener("change", saveLook);
 loadLook();
 
 
@@ -570,7 +572,7 @@ const uiNav = (() => {
     let items;
     try { items = await area.get(null); } catch (_) { area = api.storage.local; items = await area.get(null); }
     return Object.entries(items || {}).filter(([k, v]) => k.startsWith(PREFIX) && v?.id).map(([, v]) => v)
-      .sort((a, b) => (b.added || 0) - (a.added || 0));
+      .sort((a, b) => (b.updated || 0) - (a.updated || 0) || (b.added || 0) - (a.added || 0));
   }
   async function render() {
     const list = await all();
@@ -591,6 +593,12 @@ const uiNav = (() => {
       a.textContent = f.title + (f.year ? ` (${f.year})` : "");
       li.append(a);
       if (f.news) { const n = document.createElement("span"); n.className = "fav-new"; n.textContent = f.news; li.append(n); }
+      if (f.updated) {
+        const w = document.createElement("span");
+        w.className = "fav-when";
+        w.textContent = "actualizado " + new Date(f.updated).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
+        li.append(w);
+      }
       const x = document.createElement("button");
       x.type = "button"; x.className = "ghost fav-x"; x.textContent = "Quitar"; x.title = "Quitar de favoritos";
       x.addEventListener("click", async () => { await area.remove(PREFIX + f.id); render(); });

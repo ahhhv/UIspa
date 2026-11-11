@@ -140,3 +140,4 @@ html.hcm-light .hc-plex-same, html.hcm-light .hc-plex-other, html.hcm-light .hc-
 html.hcm-light .hc-plex-same.hc-srv-jellyfin, html.hcm-light .hc-plex-other.hc-srv-jellyfin, html.hcm-light .hc-plex-part.hc-srv-jellyfin { color: #8a3fa6; }
 
 .hc-emule-btn { margin-left: 4px; }
+.hc-bar-top { margin: 4px 0 14px; }

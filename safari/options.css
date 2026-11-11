@@ -113,3 +113,5 @@ a { color: var(--accent); }
   .nav { top: 4px; }
   .nav button { flex: 1 1 auto; justify-content: center; padding: 8px 10px; }
 }
+
+.fav-when { color: var(--muted); font-size: 12px; margin-left: 8px; white-space: nowrap; }

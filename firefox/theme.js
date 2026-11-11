@@ -78,7 +78,7 @@
   // Se guardan en la extensión y una copia en localStorage para aplicarlos
   // antes de pintar (theme-early.js).
   const ext = typeof browser !== "undefined" ? browser : (typeof chrome !== "undefined" ? chrome : null);
-  const LOOK_DEFAULT = { theme: "dark", size: "m", titleSize: "m", infinite: true };
+  const LOOK_DEFAULT = { theme: "dark", layout: "grid", size: "m", titleSize: "m", infinite: true };
   let look = { ...LOOK_DEFAULT };
   try { look = { ...look, ...JSON.parse(localStorage.getItem("uispa-look") || "{}") }; } catch (_) {}
   const lightQuery = window.matchMedia ? matchMedia("(prefers-color-scheme: light)") : null;
@@ -88,6 +88,7 @@
     look = { ...LOOK_DEFAULT, ...next };
     const light = look.theme === "light" || (look.theme === "auto" && !!lightQuery?.matches);
     html.classList.toggle("hcm-light", light);
+    html.dataset.hcmLayout = look.layout || "grid";
     html.dataset.hcmSize = look.size || "m";
     html.dataset.hcmTitleSize = look.titleSize || "m";
     try { localStorage.setItem("uispa-look", JSON.stringify(look)); } catch (_) {}
@@ -217,6 +218,8 @@
     const menu = h("div", { class: "hcm-dd-menu hcm-look" },
       h("div", { class: "hcm-look-label" }, "Tema"),
       h("div", { class: "hcm-seg" }, opt("theme", "dark", "Oscuro"), opt("theme", "light", "Claro"), opt("theme", "auto", "Automático")),
+      h("div", { class: "hcm-look-label" }, "Diseño"),
+      h("div", { class: "hcm-seg hcm-seg-wrap" }, opt("layout", "grid", "Rejilla"), opt("layout", "streaming", "Streaming"), opt("layout", "list", "Lista"), opt("layout", "magazine", "Revista")),
       h("div", { class: "hcm-look-label" }, "Carátulas"),
       h("div", { class: "hcm-seg" }, opt("size", "s", "Pequeñas"), opt("size", "m", "Medianas"), opt("size", "l", "Grandes")),
       h("div", { class: "hcm-look-label" }, "Título y datos"),
@@ -268,15 +271,199 @@
       sortForm);
 
     const grid = h("div", { class: "hcm-grid" });
-    rows.forEach((tr) => grid.append(card(tr)));
+    const view = makeView(grid);
+    rows.forEach((tr) => view.add(rowData(tr)));
+    // filtro rápido entre el título y la ordenación
+    toolbar.firstChild.after(view.chips);
 
     // Paginación
     const pag = $(".PAGINATION", table);
-    main.append(toolbar, grid);
+    main.append(toolbar, grid, view.empty);
     const pager = pag ? compactPagination(pag) : null;
     if (pager) main.append(pager);
-    if (pag) infiniteScroll(grid, pag, pager);
+    if (pag) infiniteScroll(view, pag, pager);
     return true;
+  }
+
+  // ------------------------------------------------------------ diseños del listado
+  // Rejilla (tarjetas), Streaming (destacado y filas por tipo), Lista compacta y
+  // Revista. Todos los elementos son a.hcm-card con .poster-wrapper, data-type y
+  // data-last, para que los favoritos (estrella, fechas) funcionen igual.
+  const LAYOUTS = ["grid", "streaming", "list", "magazine"];
+  const layoutOf = () => (LAYOUTS.includes(look.layout) ? look.layout : "grid");
+  const TYPE_ORDER = [["series", "Series"], ["movie", "Películas"], ["doc", "Documentales"], ["music", "Música"]];
+
+  function itemShell(d, cls, posterKids, bodyKids) {
+    const type = TYPE_TEXT[d.type] ? d.type : "movie";
+    const a = h("a", { class: "hcm-card " + cls, href: d.href, "data-type": type, "data-last": d.last || "",
+      title: `${d.title}${d.year ? " (" + d.year + ")" : ""}` },
+      h("div", { class: "poster-wrapper" }, d.poster ? h("img", { class: "poster-img", src: d.poster, alt: "", loading: "lazy" }) : null, posterKids),
+      bodyKids);
+    a.__uispa = { title: d.title, year: d.year, type, tag: d.tag, genres: d.genres || [], rating: d.rating, poster: d.poster };
+    return a;
+  }
+  const ratingBadge = (d, cls) => d.rating ? h("span", { class: cls + (ratingClass(+d.rating) ? " " + ratingClass(+d.rating) : "") }, "★ " + d.rating) : null;
+  const typePill = (d) => h("span", { class: "type-pill" }, typeSvg(TYPE_TEXT[d.type] ? d.type : "movie"), " " + TYPE_TEXT[TYPE_TEXT[d.type] ? d.type : "movie"]);
+  const lastText = (d) => d.last ? d.last.replace(/^hace\s+/i, "") : "";
+
+  // Lista compacta: una fila por título
+  function buildRow(d) {
+    return itemShell(d, "hcm-li", null, [
+      h("div", { class: "hcm-li-main" },
+        h("div", { class: "hcm-li-title" }, h("span", { class: "hcm-li-name" }, d.title), d.tag ? h("span", { class: "tag-status" }, d.tag) : null),
+        d.allGenres?.length ? h("div", { class: "hcm-li-sub" }, d.allGenres.slice(0, 3).join(" · ")) : null),
+      h("div", { class: "hcm-li-type" }, typePill(d), d.year ? h("span", { class: "hcm-li-year" }, d.year) : null),
+      h("div", { class: "hcm-li-quality" }, d.quality || ""),
+      h("div", { class: "hcm-li-rating" }, ratingBadge(d, "hcm-li-score")),
+      h("div", { class: "hcm-li-when" + (d.badge ? " hcm-li-new" : "") }, lastText(d))
+    ]);
+  }
+
+  // Revista: tarjeta horizontal con sinopsis
+  function buildMag(d) {
+    return itemShell(d, "hcm-mag", d.badge ? h("div", { class: "badge badge-status" }, d.badge) : null, [
+      h("div", { class: "hcm-mag-body" },
+        h("h3", { class: "hcm-mag-title" }, d.title),
+        h("div", { class: "hcm-mag-meta" }, typePill(d), d.year ? h("span", {}, d.year) : null,
+          d.tag ? h("span", { class: "tag-status" }, d.tag) : null, ratingBadge(d, "hcm-mag-score")),
+        d.allGenres?.length ? h("div", { class: "genres-list" }, d.allGenres.slice(0, 4).map((t) => h("span", { class: "genre-chip" }, t))) : null,
+        d.synopsis ? h("p", { class: "hcm-mag-plot" }, d.synopsis) : null,
+        h("div", { class: "hcm-mag-foot" }, [d.quality, d.director && d.type === "movie" ? "Dir. " + d.director : null,
+          d.last ? "Publicado: " + d.last : null].filter(Boolean).join(" · ")))
+    ]);
+  }
+
+  // Streaming: un destacado grande y una fila horizontal por tipo
+  function buildHero(d) {
+    const hero = h("a", { class: "hcm-stream-hero", href: d.href, "data-type": TYPE_TEXT[d.type] ? d.type : "movie" },
+      d.poster ? h("img", { class: "hcm-stream-bg", src: d.poster, alt: "" }) : null,
+      h("div", { class: "hcm-stream-inner" },
+        d.poster ? h("img", { class: "hcm-stream-poster", src: d.poster, alt: "" }) : null,
+        h("div", { class: "hcm-stream-info" },
+          h("div", { class: "hcm-stream-kicker" }, d.badge ? "Nuevo " + d.badge : "Destacado"),
+          h("h2", { class: "hcm-stream-title" }, d.title),
+          h("div", { class: "hcm-mag-meta" }, typePill(d), d.year ? h("span", {}, d.year) : null,
+            d.tag ? h("span", { class: "tag-status" }, d.tag) : null, ratingBadge(d, "hcm-mag-score")),
+          d.synopsis ? h("p", { class: "hcm-stream-plot" }, d.synopsis) : null,
+          h("span", { class: "hcm-stream-cta" }, "Ver ficha →"))));
+    return hero;
+  }
+  function stripRow(label) {
+    const strip = h("div", { class: "hcm-strip" });
+    const prev = h("button", { type: "button", class: "hcm-favs-arrow", title: "Anteriores", onclick: () => strip.scrollBy({ left: -strip.clientWidth * .8, behavior: "smooth" }) }, "‹");
+    const next = h("button", { type: "button", class: "hcm-favs-arrow", title: "Siguientes", onclick: () => strip.scrollBy({ left: strip.clientWidth * .8, behavior: "smooth" }) }, "›");
+    const count = h("span", { class: "hcm-strip-count" });
+    const nav = h("div", { class: "hcm-favs-nav" }, prev, next);
+    const sec = h("section", { class: "hcm-strip-sec" },
+      h("div", { class: "hcm-strip-head" }, h("h2", { class: "hcm-strip-title" }, label), count, nav),
+      strip);
+    // flechas solo si la fila no cabe entera
+    const arrows = () => {
+      const over = strip.scrollWidth > strip.clientWidth + 4;
+      nav.hidden = !over;
+      prev.disabled = strip.scrollLeft < 4;
+      next.disabled = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 4;
+    };
+    strip.addEventListener("scroll", arrows, { passive: true });
+    if (window.ResizeObserver) new ResizeObserver(arrows).observe(strip);
+    return { sec, strip, count, arrows };
+  }
+
+  // Filtro rápido por tipo (Todo, Películas, Series…): se aplica a lo ya
+  // cargado y a lo que llega con el scroll infinito. Se recuerda durante la
+  // sesión del navegador (sessionStorage), no para siempre.
+  const FILTERS = [["all", "Todo"], ["movie", "Películas"], ["series", "Series"], ["doc", "Documentales"], ["music", "Música"]];
+  const typeKey = (d) => (TYPE_TEXT[d.type] ? d.type : "movie");
+
+  function makeView(grid) {
+    const items = [];
+    let mode = null, rowsByType = null;
+    let filter = "all";
+    try { filter = sessionStorage.getItem("uispa-filter") || "all"; } catch (_) {}
+    if (!FILTERS.some(([k]) => k === filter)) filter = "all";
+    const match = (d) => filter === "all" || typeKey(d) === filter;
+    const itemFor = (d) => mode === "list" ? buildRow(d) : mode === "magazine" ? buildMag(d) : buildCard(d);
+    const empty = h("div", { class: "hcm-filter-empty", hidden: "" });
+
+    // botones del filtro, con cuántos hay de cada tipo en lo cargado
+    const chips = h("div", { class: "hcm-filter", role: "toolbar", "aria-label": "Filtrar por tipo" });
+    const chipBtns = FILTERS.map(([key, label]) => {
+      const n = h("span", { class: "hcm-filter-n" });
+      const b = h("button", { type: "button", class: "hcm-filter-btn", "data-filter": key, "aria-pressed": "false",
+        onclick: () => setFilter(key) }, label, n);
+      b.__n = n;
+      chips.append(b);
+      return b;
+    });
+    function syncChips() {
+      const counts = { all: items.length };
+      for (const d of items) counts[typeKey(d)] = (counts[typeKey(d)] || 0) + 1;
+      for (const b of chipBtns) {
+        const k = b.dataset.filter, n = counts[k] || 0;
+        b.__n.textContent = String(n);
+        b.classList.toggle("hcm-on", k === filter);
+        b.setAttribute("aria-pressed", String(k === filter));
+        // tipos sin títulos cargados: se ocultan (salvo el activo y «Todo»)
+        b.hidden = k !== "all" && k !== filter && !n;
+      }
+      const shown = items.filter(match).length;
+      empty.hidden = !!shown || !items.length;
+      empty.textContent = shown ? "" : `No hay ${(FILTERS.find(([k]) => k === filter) || [, ""])[1].toLowerCase()} en lo cargado. Baja para cargar más títulos o elige «Todo».`;
+    }
+    function setFilter(key) {
+      filter = key;
+      try { sessionStorage.setItem("uispa-filter", key); } catch (_) {}
+      render();
+      // si con el filtro la página se queda corta, el scroll infinito carga más
+      view.onFilter?.();
+    }
+
+    function streamAdd(d) {
+      const key = typeKey(d);
+      let row = rowsByType[key];
+      if (!row) {
+        row = rowsByType[key] = stripRow((TYPE_ORDER.find(([k]) => k === key) || [, "Otros"])[1]);
+        // en el orden fijo: Series, Películas, Documentales, Música
+        const order = TYPE_ORDER.map(([k]) => k);
+        const prevRow = order.slice(0, order.indexOf(key)).reverse().map((k) => rowsByType[k]).find(Boolean);
+        const hero = grid.querySelector(".hcm-stream-hero");
+        if (prevRow) prevRow.sec.after(row.sec);
+        else if (hero) hero.after(row.sec);
+        else grid.prepend(row.sec);
+      }
+      row.strip.append(buildCard(d));
+      requestAnimationFrame(row.arrows);
+      const n = row.strip.children.length;
+      row.count.textContent = n === 1 ? "1 título" : `${n} títulos`;
+    }
+    function render() {
+      mode = layoutOf();
+      grid.className = "hcm-grid hcm-layout-" + mode;
+      grid.textContent = "";
+      rowsByType = {};
+      const list = items.filter(match);
+      if (mode === "streaming") {
+        const top = list.find((d) => d.synopsis && d.poster) || list[0];
+        if (top) grid.append(buildHero(top));
+        list.forEach(streamAdd);
+      } else list.forEach((d) => grid.append(itemFor(d)));
+      syncChips();
+    }
+    const view = {
+      grid, items, chips, empty,
+      has: (href) => items.some((d) => d.href === href),
+      add(d) {
+        items.push(d);
+        if (mode === null) render();
+        else if (match(d)) {
+          if (mode === "streaming") { if (!grid.querySelector(".hcm-stream-hero")) render(); else streamAdd(d); }
+          else grid.append(itemFor(d));
+        }
+        syncChips();
+      }
+    };
+    lookListeners.push(() => { if (layoutOf() !== mode) render(); });
+    return view;
   }
 
   // Filas de un listado (portada, búsqueda…) dentro de un documento
@@ -300,7 +487,28 @@
     return svg;
   }
 
-  function card(tr) {
+  // «Becker (Temporadas 1 a 4)» → { title: "Becker", tag: "Temp. 1 a 4" }
+  function splitTitle(raw) {
+    let title = String(raw || "").trim(), tag = null;
+    const seasonRegex = /\s*\((?:((?:\d+[ªº]?\s*)?Temp(?:oradas?)?[^)]*|Miniserie|Serie Completa|Completa|Parte\s*\d+[^)]*))\)\s*$/i;
+    const seasonMatch = title.match(seasonRegex);
+    if (seasonMatch) {
+      tag = seasonMatch[1].trim();
+      title = title.replace(seasonRegex, "").trim();
+    } else {
+      const inTitleMatch = title.match(/\(([^)]*(?:Temp|Miniserie|Completa)[^)]*)\)/i);
+      if (inTitleMatch) {
+        tag = inTitleMatch[1].trim();
+        title = title.replace(inTitleMatch[0], "").trim();
+      }
+    }
+    if (tag) tag = tag.replace(/Temporadas?\s*/i, "Temp. ").replace(/(\d+[ªº]?)\s*Temporada/i, "$1 Temp.");
+    return { title, tag };
+  }
+
+  const card = (tr) => buildCard(rowData(tr));
+  // Datos de una fila del listado original (los usan todos los diseños)
+  function rowData(tr) {
     const a = $("td.R1 h1 a", tr);
     const href = a.getAttribute("href");
     const smallTxt = txt($("small", a));
@@ -325,76 +533,59 @@
     }
 
     // Detección de etiqueta de temporada / miniserie / etc.
-    let tagStatus = null;
-    const seasonRegex = /\s*\((?:((?:\d+[ªº]?\s*)?Temp(?:oradas?)?[^)]*|Miniserie|Serie Completa|Completa|Parte\s*\d+[^)]*))\)\s*$/i;
-    const seasonMatch = rawTitle.match(seasonRegex);
-    if (seasonMatch) {
-      tagStatus = seasonMatch[1].trim();
-      rawTitle = rawTitle.replace(seasonRegex, "").trim();
-    } else {
-      const inTitleMatch = rawTitle.match(/\(([^)]*(?:Temp|Miniserie|Completa)[^)]*)\)/i);
-      if (inTitleMatch) {
-        tagStatus = inTitleMatch[1].trim();
-        rawTitle = rawTitle.replace(inTitleMatch[0], "").trim();
-      }
-    }
-    if (tagStatus) {
-      tagStatus = tagStatus
-        .replace(/Temporadas?\s*/i, "Temp. ")
-        .replace(/(\d+[ªº]?)\s*Temporada/i, "$1 Temp.");
-    }
+    const split = splitTitle(rawTitle);
+    rawTitle = split.title;
+    const tagStatus = split.tag;
 
     // Tipo: el que indica la propia web; solo si falta se deduce del título
     const TYPES = { "Películas": "movie", "Series": "series", "Documentales": "doc", "Música": "music" };
-    const TYPE_TEXT = { movie: "Película", series: "Serie", doc: "Docu", music: "Música" };
     let type = TYPES[g.type];
     if (!type) {
       const t = (g.type + " " + rawTitle).toLowerCase();
       type = /serie/.test(t) || tagStatus ? "series" : /docu/.test(t) ? "doc" : /m[uú]sica/.test(t) ? "music" : "movie";
     }
-    const typeText = TYPE_TEXT[type];
+    return {
+      href, title: rawTitle, year: finalYear, type, tag: tagStatus, director,
+      genres: (g.links.length ? g.links : (director ? [{ text: director }] : [])).slice(0, 2).map((l) => l.text),
+      allGenres: g.links.map((l) => l.text),
+      rating, poster: img?.getAttribute("src") || "", badge: isNew ? last.split(" ")[0].toLowerCase() : null, last,
+      synopsis: txt($("td.R1 p.TEXT", tr)),
+      quality: info["Calidad"] ? txt(infoContent(info["Calidad"])) : ""
+    };
+  }
 
-    // Chips de género (hasta 2)
-    const genres = (g.links.length ? g.links : (director ? [{ text: director }] : []))
-      .slice(0, 2)
-      .map((l) => h("span", { class: "genre-chip" }, l.text));
-
-    const metaKids = [
-      h("span", { class: "type-pill" }, typeSvg(type), " " + typeText)
-    ];
-    if (finalYear) {
-      metaKids.push(h("span", { class: "dot" }, "•"), h("span", {}, finalYear));
-    }
-    if (tagStatus) {
-      metaKids.push(h("span", { class: "tag-status" }, tagStatus));
-    }
-
+  // Tarjeta de un título a partir de sus datos: la usan la rejilla y la fila
+  // de favoritos (favorites.js, a través de globalThis.__uispa.buildCard), para
+  // que las dos sigan el mismo tamaño de carátula y de texto.
+  const TYPE_TEXT = { movie: "Película", series: "Serie", doc: "Docu", music: "Música" };
+  function buildCard(d) {
+    const type = TYPE_TEXT[d.type] ? d.type : "movie";
+    const metaKids = [h("span", { class: "type-pill" }, typeSvg(type), " " + TYPE_TEXT[type])];
+    if (d.year) metaKids.push(h("span", { class: "dot" }, "•"), h("span", {}, d.year));
+    if (d.tag) metaKids.push(h("span", { class: "tag-status" }, d.tag));
     const overlayKids = [
-      h("h3", { class: "card-title" }, rawTitle),
+      h("h3", { class: "card-title" }, d.title),
       h("div", { class: "card-meta" }, metaKids)
     ];
-    if (genres.length) {
-      overlayKids.push(h("div", { class: "genres-list" }, genres));
-    }
-
-    const posterKids = [
-      h("img", { class: "poster-img", src: img.getAttribute("src"), alt: rawTitle, loading: "lazy" })
-    ];
-    if (rating) {
-      posterKids.push(h("div", { class: "badge badge-rating" + (ratingClass(+rating) ? " " + ratingClass(+rating) : "") }, "★ " + rating));
-    }
-    if (isNew) {
-      posterKids.push(h("div", { class: "badge badge-status" }, last.split(" ")[0].toLowerCase()));
-    }
+    if (d.genres?.length) overlayKids.push(h("div", { class: "genres-list" }, d.genres.map((t) => h("span", { class: "genre-chip" }, t))));
+    if (d.extra) overlayKids.push(d.extra);
+    const posterKids = [];
+    if (d.poster) posterKids.push(h("img", { class: "poster-img", src: d.poster, alt: d.title, loading: "lazy" }));
+    if (d.rating) posterKids.push(h("div", { class: "badge badge-rating" + (ratingClass(+d.rating) ? " " + ratingClass(+d.rating) : "") }, "★ " + d.rating));
+    if (d.badge) posterKids.push(h("div", { class: "badge badge-status" }, d.badge));
     posterKids.push(h("div", { class: "card-overlay" }, overlayKids));
-
-    return h("a", {
+    const a = h("a", {
       class: "hcm-card media-card",
-      href,
+      href: d.href,
       "data-type": type,
-      title: `${rawTitle}${finalYear ? " (" + finalYear + ")" : ""}`
+      "data-last": d.last || "",     // «Última publicación» (hoy, ayer, 3 días…): la usan los favoritos
+      title: `${d.title}${d.year ? " (" + d.year + ")" : ""}`
     }, h("div", { class: "poster-wrapper" }, posterKids));
+    // datos para quien guarde la tarjeta (favoritos)
+    a.__uispa = { title: d.title, year: d.year, type, tag: d.tag, genres: d.genres || [], rating: d.rating, poster: d.poster };
+    return a;
   }
+  globalThis.__uispa = { ...(globalThis.__uispa || {}), buildCard, splitTitle };
 
   // Scroll infinito: al llegar al final se pide la página siguiente y se
   // añaden sus títulos. La paginación se queda debajo por si se desactiva.
@@ -403,10 +594,10 @@
     const a = $$("a", pag).find((x) => Number((x.getAttribute("href").match(/page=(\d+)/) || [])[1]) === cur + 1);
     return a ? new URL(a.getAttribute("href"), location.href).href : null;
   }
-  function infiniteScroll(grid, pag, pager) {
+  function infiniteScroll(view, pag, pager) {
+    const grid = view.grid;
     let next = nextPageUrl(pag);
     let busy = false, page = Number(txt($("span", pag))) || 1;
-    const seen = new Set($$(".hcm-card", grid).map((c) => c.getAttribute("href")));
     const status = h("div", { class: "hcm-more", role: "status" });
     const sentinel = h("div", { class: "hcm-sentinel" });
     grid.after(status, sentinel);
@@ -428,10 +619,9 @@
         const doc = new DOMParser().parseFromString(await res.text(), "text/html");
         const rows = listRows(doc);
         for (const tr of rows) {
-          const c = card(tr);
-          if (seen.has(c.getAttribute("href"))) continue;
-          seen.add(c.getAttribute("href"));
-          grid.append(c);
+          const d = rowData(tr);
+          if (view.has(d.href)) continue;
+          view.add(d);
         }
         const p2 = $(".PAGINATION", doc);
         page++;
@@ -446,9 +636,11 @@
       busy = false;
       update();
       // si la página aún no llena la pantalla, se sigue cargando
-      if (next && sentinel.getBoundingClientRect().top < innerHeight + 600) load();
+      // (mismo margen que el observador: si sigue «a la vista» no volvería a avisar)
+      if (next && sentinel.getBoundingClientRect().top < innerHeight + 800) load();
     }
     const io = new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting)) load(); }, { rootMargin: "800px 0px" });
+    view.onFilter = () => requestAnimationFrame(() => { if (next && look.infinite && sentinel.getBoundingClientRect().top < innerHeight + 800) load(); });
     lookListeners.push(update);
     update();
   }
