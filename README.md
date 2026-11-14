@@ -223,6 +223,9 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 
 ## Novedades
 
+**4.3.2**
+- Arreglado: «Nueva carpeta» en el recuadro del NAS fallaba siempre con «El NAS respondió con el error 101». Ahora crea la carpeta (los nombres no pueden llevar comas).
+
 **4.3.1**
 - **Carpeta del NAS por serie:** la carpeta que eliges al enviar a Download Station se recuerda para esa serie (y sus otras temporadas); la próxima vez el recuadro se abre directamente ahí. Se pueden ver y olvidar en Ajustes → Descargas → NAS.
 - Si al NAS, a Plex/Jellyfin o a la descarga remota les falta el permiso del navegador, ahora se dice claramente y cómo arreglarlo.
