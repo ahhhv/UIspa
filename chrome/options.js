@@ -66,6 +66,19 @@ function hostPattern(url) {
   return `${u.protocol}//${u.hostname}/*`;
 }
 
+// Quita el permiso de una dirección solo si ningún otro servicio configurado
+// (Plex, Jellyfin, NAS, descarga remota) usa ese mismo equipo: el permiso va
+// por equipo, no por puerto, y quitarlo dejaría a los demás sin conexión.
+async function releaseHost(url) {
+  if (!url) return;
+  try {
+    const pat = hostPattern(url);
+    const s = await api.storage.local.get(["plexUrl", "jfUrl", "dsUrl", "amUrl"]);
+    const inUse = Object.values(s).some((u) => { try { return u && hostPattern(u) === pat; } catch (_) { return false; } });
+    if (!inUse) await api.permissions.remove({ origins: [pat] });
+  } catch (_) {}
+}
+
 // Pide permiso para hablar con el servidor (solo esa dirección).
 // Debe llamarse directamente desde un clic.
 async function withServer(fn) {
@@ -123,7 +136,7 @@ $("clear").addEventListener("click", async () => {
   remove.forEach((k) => delete stored[k]);
   dots();
   await api.runtime.sendMessage({ action: "media-reset" });
-  if (url) { try { await api.permissions.remove({ origins: [hostPattern(url)] }); } catch (_) {} }
+  await releaseHost(url);
   $("url").value = ""; $("token").value = "";
   say(`${s.name} desconectado. Se han borrado la dirección y la clave.`);
 });
@@ -206,7 +219,7 @@ api.storage.local.get(["server", "plexUrl", "plexToken", "jfUrl", "jfKey"]).then
     const { dsUrl: old } = await api.storage.local.get("dsUrl");
     await api.storage.local.remove([...DS_KEYS, "dsRecent"]);
     await api.runtime.sendMessage({ action: "ds-reset" });
-    if (old) { try { await api.permissions.remove({ origins: [hostPattern(old)] }); } catch (_) {} }
+    await releaseHost(old);
     DS_KEYS.forEach((k) => ($(k).value = ""));
     dsSay("Download Station desconectado. Se han borrado la dirección y las credenciales.");
   });
@@ -309,7 +322,7 @@ api.storage.local.get(["server", "plexUrl", "plexToken", "jfUrl", "jfKey"]).then
     const { amUrl: old } = await api.storage.local.get("amUrl");
     await api.storage.local.remove(AM_KEYS);
     await api.runtime.sendMessage({ action: "am-reset" });
-    if (old) { try { await api.permissions.remove({ origins: [hostPattern(old)] }); } catch (_) {} }
+    await releaseHost(old);
     $("amUrl").value = $("amPass").value = $("amUser").value = "";
     fillCats([], null);
     amSay("Descarga remota desconectada. Se han borrado la dirección y la contraseña.");
@@ -607,6 +620,40 @@ const uiNav = (() => {
     }
     $("favClear").disabled = $("favExport").disabled = !list.length;
   }
+  // Carpetas del NAS recordadas por serie
+  async function renderNasSeries() {
+    const ul = $("nasSeriesList");
+    if (!ul) return;
+    const { nasSeries: m = {} } = await api.storage.local.get("nasSeries");
+    ul.textContent = "";
+    const list = Object.entries(m).sort((a, b) => a[1].name.localeCompare(b[1].name, "es"));
+    if (!list.length) {
+      const li = document.createElement("li");
+      li.className = "muted";
+      li.textContent = "Todavía no hay ninguna.";
+      ul.append(li);
+    }
+    for (const [key, v] of list) {
+      const li = document.createElement("li");
+      const b = document.createElement("b");
+      b.textContent = v.name;
+      const w = document.createElement("span");
+      w.className = "fav-when";
+      w.textContent = "📁 " + v.path;
+      const x = document.createElement("button");
+      x.type = "button"; x.className = "ghost fav-x"; x.textContent = "Olvidar";
+      x.addEventListener("click", async () => {
+        const { nasSeries: cur = {} } = await api.storage.local.get("nasSeries");
+        delete cur[key];
+        await api.storage.local.set({ nasSeries: cur });
+      });
+      li.append(b, w, x);
+      ul.append(li);
+    }
+  }
+  renderNasSeries();
+  api.storage.onChanged.addListener((ch, area) => { if (area === "local" && ch.nasSeries) renderNasSeries(); });
+
   $("emuleBtns").addEventListener("change", async (e) => {
     if (e.target.checked) await api.storage.local.remove("emuleOff");
     else await api.storage.local.set({ emuleOff: true });

@@ -37,6 +37,7 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 
 **Enviar a Synology Download Station (opcional)**
 - «Seleccionados» / «Todos» en cada versión.
+- La carpeta que elijas se **recuerda para cada serie** (también para sus otras temporadas): la próxima vez el recuadro se abre directamente en ella y basta con pulsar Intro. Las carpetas guardadas se ven y se olvidan en Ajustes → Descargas → NAS.
 - Al enviar eliges la carpeta navegando por las carpetas del NAS, o escribiéndola. Se abre en la última que usaste, tienes atajos a la carpeta por defecto y a las recientes, y puedes crear carpetas nuevas.
 
 **Favoritos**
@@ -221,6 +222,11 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 - La coincidencia exacta con el servidor se basa en el tamaño que muestra la web, redondeado a dos decimales. Si renombras o recomprimes un archivo, aparecerá como «≈» u «otra calidad».
 
 ## Novedades
+
+**4.3.1**
+- **Carpeta del NAS por serie:** la carpeta que eliges al enviar a Download Station se recuerda para esa serie (y sus otras temporadas); la próxima vez el recuadro se abre directamente ahí. Se pueden ver y olvidar en Ajustes → Descargas → NAS.
+- Si al NAS, a Plex/Jellyfin o a la descarga remota les falta el permiso del navegador, ahora se dice claramente y cómo arreglarlo.
+- Arreglado: desconectar un servicio (aMule, Plex, Jellyfin o el NAS) quitaba el permiso a los demás que estuvieran en el mismo equipo.
 
 **4.3.0**
 - **Diseños del listado:** además de la rejilla, **Streaming**, **Lista** compacta y **Revista**. Se eligen en el botón ◐ o en Ajustes → Apariencia.

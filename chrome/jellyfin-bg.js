@@ -17,7 +17,7 @@
         }
       });
     } catch (e) {
-      throw new Error("No se puede conectar con el servidor Jellyfin");
+      throw new Error(await globalThis.__uispaNoReach(cfg.url, "No se puede conectar con el servidor Jellyfin"));
     }
     if (res.status === 401 || res.status === 403) throw new Error("La clave de API de Jellyfin no es válida");
     if (!res.ok) throw new Error("Jellyfin respondió con el error " + res.status);

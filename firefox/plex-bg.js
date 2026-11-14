@@ -1,5 +1,17 @@
 // UIspa · conector de Plex (segundo plano).
 // Devuelve los datos en el formato común que usa media-bg.js.
+// Si una petición a un servidor propio falla, comprueba si es porque falta el
+// permiso del navegador para esa dirección y devuelve un mensaje que lo diga.
+globalThis.__uispaNoReach = async (url, fallback) => {
+  const api = typeof browser !== "undefined" ? browser : chrome;
+  try {
+    const u = new URL(url);
+    if (!(await api.permissions.contains({ origins: [`${u.protocol}//${u.hostname}/*`] })))
+      return `El navegador no tiene permiso para acceder a ${u.host}. Ve a los ajustes de UIspa y pulsa «Guardar» en ese apartado para concederlo.`;
+  } catch (_) {}
+  return fallback;
+};
+
 (() => {
   const servers = (globalThis.__uispaServers = globalThis.__uispaServers || {});
   const TTL = 10 * 60 * 1000; // la biblioteca se vuelve a leer cada 10 min
@@ -19,7 +31,7 @@
         }
       });
     } catch (e) {
-      throw new Error("No se puede conectar con el servidor Plex");
+      throw new Error(await globalThis.__uispaNoReach(cfg.url, "No se puede conectar con el servidor Plex"));
     }
     if (res.status === 401) throw new Error("El token de Plex no es válido");
     if (!res.ok) throw new Error("Plex respondió con el error " + res.status);

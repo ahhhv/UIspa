@@ -262,12 +262,42 @@
   // del NAS. Devuelve la carpeta ("" = la predeterminada de Download Station)
   // o null si se cancela.
   let openPop = null;
+
+  // Carpeta del NAS recordada por serie: se guarda por nombre (sin la parte
+  // de «(Temporada …)»), así sirve también para las fichas de otras temporadas.
+  const SERIES_KEY = "nasSeries";
+  const normName = (t) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  function seriesOfPage() {
+    if (new URLSearchParams(location.search).get("view") !== "title") return null;
+    const h1 = document.querySelector("td.R2 h1") || document.querySelector("main h1, .hcm-title h1, h1");
+    if (!h1) return null;
+    let raw = (h1.textContent || "").replace(h1.querySelector("small")?.textContent || "", "").replace(/\s*\(\d{4}\)\s*$/, "").trim();
+    const name = globalThis.__uispa?.splitTitle?.(raw)?.title || raw.replace(/\s*\([^)]*\)\s*$/, "").trim();
+    const key = normName(name);
+    return key ? { name, key } : null;
+  }
+  async function seriesFolder(series) {
+    if (!series) return null;
+    try { const { [SERIES_KEY]: m } = await api.storage.local.get(SERIES_KEY); return m?.[series.key] || null; } catch (_) { return null; }
+  }
+  async function rememberFolder(series, path) {
+    if (!series) return;
+    try {
+      const { [SERIES_KEY]: m = {} } = await api.storage.local.get(SERIES_KEY);
+      if (path === null) delete m[series.key];
+      else m[series.key] = { name: series.name, path, t: Date.now() };
+      await api.storage.local.set({ [SERIES_KEY]: m });
+    } catch (_) {}
+  }
+
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   async function pickFolder(anchor) {
     if (proxyAnchor?.isConnected) anchor = proxyAnchor;
     openPop?.cancel();
     let st = {};
     try { st = (await api.runtime.sendMessage({ action: "ds-status" })) || {}; } catch (_) {}
+    const series = seriesOfPage();
+    const saved = await seriesFolder(series);
     return new Promise((resolve) => {
       const pop = el("div", "hc-nas-pop");
       pop.setAttribute("role", "dialog");
@@ -284,7 +314,14 @@
       const note = el("div", "hc-nas-note");
 
       const chips = el("div", "hc-nas-chips");
-      const options = [...new Set([st.dest, ...(st.recent || [])].filter(Boolean))].slice(0, 6);
+      const options = [...new Set([st.dest, ...(st.recent || [])].filter(Boolean))].filter((d) => d !== saved?.path).slice(0, 6);
+      if (saved?.path) {
+        const c = el("button", "hc-nas-chip-series", `📌 ${saved.path}`);
+        c.type = "button";
+        c.title = `Carpeta guardada para «${series.name}»`;
+        c.addEventListener("click", () => browse(saved.path));
+        chips.append(c);
+      }
       for (const d of options) {
         const c = el("button", null, d === st.dest ? `${d} (por defecto)` : d);
         c.type = "button";
@@ -296,7 +333,16 @@
       const ok = el("button", "hc-nas-ok", "Enviar aquí");
       cancel.type = ok.type = "button";
       row.append(cancel, ok);
-      pop.append(el("div", "hc-nas-title", "📥 Enviar a Download Station"), label, crumbs, list, note, ...(options.length ? [chips] : []), row);
+      // «Recordar para esta serie»: marcado por defecto
+      let remember = null;
+      if (series) {
+        remember = el("input");
+        remember.type = "checkbox";
+        remember.checked = true;
+        const rl = el("label", "hc-nas-remember");
+        rl.append(remember, ` Recordar esta carpeta para «${series.name}»`);
+      }
+      pop.append(el("div", "hc-nas-title", "📥 Enviar a Download Station"), label, crumbs, list, note, ...(chips.childElementCount ? [chips] : []), ...(remember ? [remember.parentElement] : []), row);
 
       let seq = 0;
       async function browse(path) {
@@ -390,9 +436,14 @@
       };
       const outside = (e) => { if (!pop.contains(e.target)) close(null); };
       cancel.addEventListener("click", () => close(null));
-      ok.addEventListener("click", () => close(input.value.trim().replace(/^\/+|\/+$/g, "")));
+      ok.addEventListener("click", () => {
+        const dest = input.value.trim().replace(/^\/+|\/+$/g, "");
+        if (remember?.checked && dest) rememberFolder(series, dest);
+        else if (remember && !remember.checked && saved) rememberFolder(series, null);
+        close(dest);
+      });
       pop.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") { e.preventDefault(); ok.click(); }
+        if (e.key === "Enter" && e.target.type !== "checkbox") { e.preventDefault(); ok.click(); }
         if (e.key === "Escape") { e.preventDefault(); close(null); }
         e.stopPropagation();
       });
@@ -412,8 +463,8 @@
       place();
       setTimeout(() => document.addEventListener("pointerdown", outside, true), 0);
       openPop = { pop, cancel: () => close(null) };
-      // Empieza en la última carpeta usada o en la de por defecto
-      browse((st.recent || [])[0] || st.dest || "").then(place);
+      // Empieza en la carpeta de esta serie, si hay, o en la última usada
+      browse(saved?.path || (st.recent || [])[0] || st.dest || "").then(place);
       input.focus();
     });
   }

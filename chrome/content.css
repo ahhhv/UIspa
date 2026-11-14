@@ -141,3 +141,6 @@ html.hcm-light .hc-plex-same.hc-srv-jellyfin, html.hcm-light .hc-plex-other.hc-s
 
 .hc-emule-btn { margin-left: 4px; }
 .hc-bar-top { margin: 4px 0 14px; }
+.hc-nas-pop label.hc-nas-remember { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: #c9d1e0; font-size: 12.5px; cursor: pointer; }
+.hc-nas-pop .hc-nas-remember input { width: auto; margin: 0; accent-color: #5096ff; }
+.hc-nas-pop .hc-nas-chip-series { border-color: #5096ff; color: #8ab8ff; }

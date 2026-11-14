@@ -48,7 +48,7 @@
     try {
       res = await fetch(cfg.url + path, { method, headers, body: body ? JSON.stringify(body) : undefined, credentials: "omit", cache: "no-store" });
     } catch (_) {
-      throw new Error(`No se pudo conectar con ${cfg.url}. Comprueba la dirección y que aMule esté en marcha.`);
+      throw new Error(await globalThis.__uispaNoReach(cfg.url, `No se pudo conectar con ${cfg.url}. Comprueba la dirección y que aMule esté en marcha.`));
     }
     let data = null;
     try { data = await res.json(); } catch (_) {}

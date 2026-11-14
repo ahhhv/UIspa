@@ -55,7 +55,7 @@
         credentials: "omit"
       });
     } catch (e) {
-      throw new Error("No se puede conectar con el NAS");
+      throw new Error(await globalThis.__uispaNoReach(cfg.url, "No se puede conectar con el NAS"));
     }
     if (!res.ok) throw new Error("El NAS respondió con el error " + res.status);
     let data;
