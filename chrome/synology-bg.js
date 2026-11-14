@@ -149,11 +149,11 @@
     const dir = cleanDir(parent);
     const name = String(rawName || "").trim();
     if (!dir) return { ok: false, error: "Entra primero en una carpeta compartida" };
-    if (!name || name === "." || name === ".." || /[\\/:*?"<>|]/.test(name) || name.length > 200) {
+    if (!name || name === "." || name === ".." || /[\\/:*?"<>|,]/.test(name) || name.length > 200) {
       return { ok: false, error: "Ese nombre no es válido" };
     }
     const d = await syno(cfg, "SYNO.FileStation.CreateFolder",
-      { folder_path: "/" + dir, name, force_parent: "false" }, CREATE_ERRORS, "FileStation");
+      { method: "create", folder_path: "/" + dir, name, force_parent: "false" }, CREATE_ERRORS, "FileStation");
     const made = d.folders?.[0]?.path;
     return { ok: true, path: made ? cleanDir(made) : `${dir}/${name}` };
   }
