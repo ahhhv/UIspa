@@ -225,6 +225,11 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 
 ## Novedades
 
+**4.4.0**
+- **Carpeta del NAS según Plex / Jellyfin:** si la serie ya está en tu biblioteca, el recuadro de Download Station se abre en su carpeta; las películas, en la carpeta de tu biblioteca de películas. Funciona aunque el servidor vaya en Docker: UIspa averigua la equivalencia de rutas (o se puede escribir en Ajustes → Descargas → NAS).
+- «Recordar esta carpeta» sale desmarcada, salvo que la serie ya tuviera una guardada. Enlace «Ver guardadas» en el propio recuadro.
+- El número de carpetas recientes que se ofrecen se elige en Ajustes (0 para ninguna).
+
 **4.3.2**
 - Arreglado: «Nueva carpeta» en el recuadro del NAS fallaba siempre con «El NAS respondió con el error 101». Ahora crea la carpeta (los nombres no pueden llevar comas).
 
