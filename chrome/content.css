@@ -144,3 +144,6 @@ html.hcm-light .hc-plex-same.hc-srv-jellyfin, html.hcm-light .hc-plex-other.hc-s
 .hc-nas-pop label.hc-nas-remember { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: #c9d1e0; font-size: 12.5px; cursor: pointer; }
 .hc-nas-pop .hc-nas-remember input { width: auto; margin: 0; accent-color: #5096ff; }
 .hc-nas-pop .hc-nas-chip-series { border-color: #5096ff; color: #8ab8ff; }
+.hc-nas-pop .hc-nas-chip-media { border-color: #e5a00d; color: #f0c25a; }
+.hc-nas-pop .hc-nas-remember .hc-nas-all { margin-left: auto; color: #8ab8ff; font-size: 12px; text-decoration: none; white-space: nowrap; }
+.hc-nas-pop .hc-nas-remember .hc-nas-all:hover { text-decoration: underline; }

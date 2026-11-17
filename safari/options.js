@@ -652,6 +652,26 @@ const uiNav = (() => {
     }
   }
   renderNasSeries();
+  // Equivalencias de rutas entre Plex / Jellyfin y el NAS
+  (async () => {
+    const box = $("pathMap"), auto = $("pathMapAuto");
+    if (!box) return;
+    const show = async () => {
+      const { pathMap = "", pathMapAuto = [] } = await api.storage.local.get(["pathMap", "pathMapAuto"]);
+      if (document.activeElement !== box) box.value = pathMap;
+      auto.textContent = "";
+      if (!pathMapAuto.length) return;
+      auto.append("Descubiertas por UIspa: " + pathMapAuto.map((m) => `${m.from} = ${m.to || "(raíz)"}`).join(" · ") + " ");
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "ghost"; b.textContent = "Olvidar";
+      b.addEventListener("click", () => api.storage.local.remove("pathMapAuto"));
+      auto.append(b);
+    };
+    box.addEventListener("change", () => api.storage.local.set({ pathMap: box.value.trim() }));
+    api.storage.onChanged.addListener((ch, area) => { if (area === "local" && (ch.pathMap || ch.pathMapAuto)) show(); });
+    show();
+  })();
+
   // Número de carpetas recientes en el recuadro del NAS
   (async () => {
     const box = $("dsRecentMax");

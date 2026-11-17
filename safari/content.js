@@ -298,6 +298,9 @@
     try { st = (await api.runtime.sendMessage({ action: "ds-status" })) || {}; } catch (_) {}
     const series = seriesOfPage();
     const saved = await seriesFolder(series);
+    // Carpeta según Plex / Jellyfin: se pide ya y llega mientras el recuadro está abierto
+    const info = globalThis.__uispaTitleInfo?.() || null;
+    const sugP = info ? api.runtime.sendMessage({ action: "ds-suggest", query: info }).catch(() => null) : Promise.resolve(null);
     let maxRecent = 6;
     try { const { dsRecentMax } = await api.storage.local.get("dsRecentMax"); if (Number.isInteger(dsRecentMax)) maxRecent = dsRecentMax; } catch (_) {}
     return new Promise((resolve) => {
@@ -321,6 +324,7 @@
       if (saved?.path) {
         const c = el("button", "hc-nas-chip-series", `📌 ${saved.path}`);
         c.type = "button";
+        c.dataset.path = saved.path;
         c.title = `Carpeta guardada para «${series.name}»`;
         c.addEventListener("click", () => browse(saved.path));
         chips.append(c);
@@ -328,6 +332,7 @@
       for (const d of options) {
         const c = el("button", null, d === st.dest ? `${d} (por defecto)` : d);
         c.type = "button";
+        c.dataset.path = d;
         c.addEventListener("click", () => browse(d));
         chips.append(c);
       }
@@ -343,7 +348,11 @@
         remember.type = "checkbox";
         remember.checked = !!saved; // desmarcada salvo que la serie ya tenga carpeta
         const rl = el("label", "hc-nas-remember");
-        rl.append(remember, ` Recordar esta carpeta para «${series.name}»`);
+        const all = el("a", "hc-nas-all", "Ver guardadas");
+        all.href = "#";
+        all.title = "Todas las carpetas guardadas, en los ajustes de UIspa";
+        all.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); api.runtime.sendMessage({ action: "open-options", hash: "descargas/nas" }); });
+        rl.append(remember, ` Recordar esta carpeta para «${series.name}»`, all);
       }
       pop.append(el("div", "hc-nas-title", "📥 Enviar a Download Station"), label, crumbs, list, note, ...(chips.childElementCount ? [chips] : []), ...(remember ? [remember.parentElement] : []), row);
 
@@ -468,7 +477,37 @@
       openPop = { pop, cancel: () => close(null) };
       // Empieza en la carpeta de esta serie, si hay, o en la última usada
       browse(saved?.path || (st.recent || [])[0] || st.dest || "").then(place);
+      const firstSeq = seq;
       input.focus();
+
+      // Cuando responde Plex / Jellyfin: atajos 📺 y, si no hay carpeta guardada y aún
+      // no has navegado, se abre la de la serie (series que ya tienes) o la de la
+      // biblioteca de películas. Las series que no están en la biblioteca siguen
+      // empezando en la carpeta de siempre.
+      sugP.then((sug) => {
+        if (!sug?.ok || !pop.isConnected) return;
+        const isMovie = info.type === "movie";
+        const targets = [];
+        if (sug.own) targets.push({ path: sug.own, title: `Carpeta de «${info.title}» en ${sug.server || "tu servidor"}` });
+        if (isMovie || !sug.own) for (const l of sug.libraries) targets.push({ path: l, title: `Biblioteca de ${sug.server || "tu servidor"}` });
+        const shown = new Set([saved?.path, ...[...chips.children].map((c) => c.dataset.path)]);
+        const fresh = targets.filter((t) => t.path && !shown.has(t.path));
+        if (fresh.length) {
+          const first = chips.querySelector(".hc-nas-chip-series");
+          fresh.reverse().forEach((t) => {
+            const c = el("button", "hc-nas-chip-media", `📺 ${t.path}`);
+            c.type = "button";
+            c.title = t.title;
+            c.dataset.path = t.path;
+            c.addEventListener("click", () => browse(t.path));
+            if (first) first.after(c); else chips.prepend(c);
+          });
+          if (!chips.isConnected) (remember?.parentElement || row).before(chips);
+        }
+        const target = isMovie ? sug.libraries[0] : sug.own;
+        if (!saved?.path && target && seq === firstSeq) browse(target).then(place);
+        else place();
+      });
     });
   }
 

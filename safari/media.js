@@ -61,6 +61,8 @@
   };
 
   // Datos del título a partir de la ficha original (también existe con el rediseño)
+  // Lo usa también el recuadro del NAS (content.js) para proponer la carpeta
+  globalThis.__uispaTitleInfo = () => titleInfo();
   function titleInfo() {
     const r2 = $("td.R2");
     if (!r2) return null;

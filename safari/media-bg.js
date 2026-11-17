@@ -30,14 +30,19 @@
     return 1;
   }
 
-  // Busca el título en un servidor concreto
-  async function lookupOne({ id, srv, cfg }, q) {
-    const type = q.type === "movie" ? "movie" : "show";
+  async function findItem(srv, cfg, q, type) {
     let best = null, bestScore = 0;
     for (const item of await srv.catalog(cfg, type)) {
       const sc = score(item, q);
       if (sc > bestScore) { best = item; bestScore = sc; if (sc === 3) break; }
     }
+    return { best, bestScore };
+  }
+
+  // Busca el título en un servidor concreto
+  async function lookupOne({ id, srv, cfg }, q) {
+    const type = q.type === "movie" ? "movie" : "show";
+    const { best, bestScore } = await findItem(srv, cfg, q, type);
     const base = { id, server: srv.name };
     if (!best) return { ...base, found: false };
     const out = { ...base, found: true, title: best.title, year: best.year, by: bestScore === 3 ? "imdb" : "title" };
@@ -53,6 +58,24 @@
     const results = await Promise.all(list.map((a) =>
       lookupOne(a, q).catch((e) => ({ id: a.id, server: a.srv.name, error: e.message }))));
     return { configured: true, results };
+  }
+
+  // Carpetas del título en los servidores (rutas tal como las ve el servidor):
+  // la de la serie si ya está en la biblioteca y las de las bibliotecas.
+  async function folders(q) {
+    const type = q?.type === "movie" ? "movie" : "show";
+    const out = { own: null, libraries: [], server: null };
+    for (const { srv, cfg } of await activeAll()) {
+      if (!srv.folders) continue;
+      try {
+        const { best } = await findItem(srv, cfg, q, type);
+        const f = await srv.folders(cfg, best, type);
+        if (!out.own && f.own) { out.own = f.own; out.server = srv.name; }
+        for (const l of f.libraries) if (!out.libraries.includes(l)) out.libraries.push(l);
+        out.server = out.server || srv.name;
+      } catch (_) {}
+    }
+    return out;
   }
 
   api.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -73,5 +96,5 @@
     }
   });
 
-  globalThis.__uispaMedia = { lookup, activeAll, servers };
+  globalThis.__uispaMedia = { lookup, activeAll, servers, folders };
 })();

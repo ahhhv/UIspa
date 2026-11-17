@@ -191,7 +191,82 @@
     return { defaultDestination: def, warnings, browse };
   }
 
+  // ---------------------------------------------------------------------------
+  // Carpeta propuesta según Plex / Jellyfin. El servidor multimedia ve las rutas
+  // a su manera: «/volume1/medialibrary/tv/911» si está instalado en el NAS, o
+  // «/tv/911» si va en Docker. Se traducen a la carpeta del NAS así:
+  //   1. equivalencias escritas en los ajustes («/tv = medialibrary/tv»)
+  //   2. equivalencias que UIspa ya descubrió antes
+  //   3. quitando «/volumeN/»
+  //   4. buscando en el NAS una carpeta que termine igual (y se recuerda)
+  async function exists(cfg, dir) {
+    try {
+      await syno(cfg, "SYNO.FileStation.List", { method: "list", folder_path: "/" + dir, filetype: "dir", limit: 1 }, FS_ERRORS, "FileStation");
+      return true;
+    } catch (_) { return false; }
+  }
+  function parseMap(text) {
+    return String(text || "").split(/\n/).map((l) => l.split("=")).filter((x) => x.length === 2)
+      .map(([from, to]) => ({ from: "/" + cleanDir(from), to: cleanDir(to) })).filter((m) => m.to);
+  }
+  function applyMap(maps, path) {
+    const best = maps.filter((m) => path === m.from || path.startsWith(m.from === "/" ? "/" : m.from + "/"))
+      .sort((a, b) => b.from.length - a.from.length)[0];
+    if (!best) return null;
+    return cleanDir(best.to + "/" + path.slice(best.from === "/" ? 1 : best.from.length));
+  }
+  async function resolvePath(cfg, raw) {
+    const path = "/" + cleanDir(String(raw || "").replace(/\\/g, "/"));
+    if (path === "/") return null;
+    const { pathMap = "", pathMapAuto = [] } = await api.storage.local.get(["pathMap", "pathMapAuto"]);
+    for (const maps of [parseMap(pathMap), pathMapAuto]) {
+      const d = applyMap(maps, path);
+      if (d && (await exists(cfg, d))) return d;
+    }
+    const vol = /^\/volume\d+\/(.+)$/.exec(path);
+    if (vol && (await exists(cfg, cleanDir(vol[1])))) return cleanDir(vol[1]);
+    // Búsqueda: quitando carpetas del principio y probando con cada carpeta compartida
+    const segs = cleanDir(path).split("/");
+    let shares = [];
+    try { shares = (await listFolders("")).folders.map((f) => f.path); } catch (_) {}
+    for (let i = 0; i < Math.min(segs.length, 4); i++) {
+      const rest = segs.slice(i).join("/");
+      const cands = [rest, ...shares.filter((sh) => sh !== segs[i]).map((sh) => sh + "/" + rest)];
+      for (const c of cands) {
+        if (!(await exists(cfg, c))) continue;
+        // Se recuerda la equivalencia para la próxima vez
+        const from = "/" + segs.slice(0, i).join("/");
+        const to = cleanDir(c.slice(0, c.length - rest.length));
+        const learned = (await api.storage.local.get("pathMapAuto")).pathMapAuto || [];
+        if (!learned.some((m) => m.from === from && m.to === to)) {
+          learned.push({ from, to });
+          await api.storage.local.set({ pathMapAuto: learned.slice(-10) });
+        }
+        return c;
+      }
+    }
+    return null;
+  }
+
+  async function suggest(query) {
+    const cfg = await config();
+    const media = globalThis.__uispaMedia;
+    if (!cfg || !media?.folders || !query) return { ok: true, own: null, libraries: [] };
+    const f = await media.folders(query);
+    const own = f.own ? await resolvePath(cfg, f.own) : null;
+    const libraries = [];
+    for (const l of f.libraries.slice(0, 4)) {
+      const d = await resolvePath(cfg, l);
+      if (d && !libraries.includes(d)) libraries.push(d);
+    }
+    return { ok: true, server: f.server, own, libraries };
+  }
+
   api.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg?.action === "ds-suggest") {
+      suggest(msg.query).then(sendResponse, (e) => sendResponse({ ok: false, error: e.message }));
+      return true;
+    }
     if (msg?.action === "ds-status") {
       config().then((c) => sendResponse(c ? { configured: true, dest: c.dest, recent: c.recent } : { configured: false }), () => sendResponse({ configured: false }));
       return true;

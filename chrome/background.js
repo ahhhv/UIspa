@@ -62,7 +62,12 @@ async function copyViaOffscreen(text) {
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg?.action === "open-options") { chrome.runtime.openOptionsPage(); return; }
+  if (msg?.action === "open-options") {
+    // con «hash», directamente en un apartado (p. ej. «descargas/nas»)
+    if (msg.hash) chrome.tabs.create({ url: chrome.runtime.getURL("options.html#" + msg.hash) });
+    else chrome.runtime.openOptionsPage();
+    return;
+  }
   if (msg?.action !== "bg-copy") return;
   copyViaOffscreen(msg.text).then(
     (ok) => sendResponse({ ok }),

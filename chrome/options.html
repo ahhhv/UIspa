@@ -160,6 +160,12 @@
     <input id="dsRecentMax" type="number" min="0" max="20" step="1" value="6" style="max-width:90px">
     <p class="muted small">Las últimas carpetas usadas salen como atajos en el recuadro del NAS. Pon 0 para no mostrar ninguna.</p>
 
+    <h3>Carpetas de Plex / Jellyfin</h3>
+    <p class="muted small">Si tienes Plex o Jellyfin conectado, al enviar una serie que ya está en tu biblioteca el recuadro se abre en su carpeta, y las películas en la carpeta de tu biblioteca de películas. Si el servidor va en Docker y ve las rutas de otra forma, UIspa intenta averiguar la equivalencia solo; si no lo consigue, escríbela aquí, una por línea.</p>
+    <label for="pathMap">Equivalencias de rutas <span class="opt">(opcional)</span></label>
+    <textarea id="pathMap" rows="3" spellcheck="false" placeholder="/tv = medialibrary/tv&#10;/movies = medialibrary/movies"></textarea>
+    <p id="pathMapAuto" class="muted small"></p>
+
     <h3>Carpetas por serie</h3>
     <p class="muted small">Al enviar al NAS desde una ficha, si marcas «Recordar esta carpeta», se guarda para esa serie (también para sus otras temporadas) y la próxima vez se abre directamente ahí.</p>
     <ul id="nasSeriesList" class="fav-list"></ul>

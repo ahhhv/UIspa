@@ -48,7 +48,7 @@ globalThis.__uispaNoReach = async (url, fallback) => {
   async function sections(cfg) {
     if (fresh(mem.sections)) return mem.sections.data;
     const mc = await get(cfg, "/library/sections");
-    const data = (mc.Directory || []).map((d) => ({ key: d.key, type: d.type, title: d.title }));
+    const data = (mc.Directory || []).map((d) => ({ key: d.key, type: d.type, title: d.title, locations: (d.Location || []).map((l) => l.path).filter(Boolean) }));
     mem.sections = { at: Date.now(), data };
     return data;
   }
@@ -67,7 +67,8 @@ globalThis.__uispaNoReach = async (url, fallback) => {
       year: m.year,
       imdb: ((m.Guid || []).map((g) => g.id).find((g) => g.startsWith("imdb://")) || "").slice(7) || null,
       resolutions: (m.Media || []).map((x) => x.videoResolution).filter(Boolean),
-      files: filesOf(m)
+      files: filesOf(m),
+      section: section.key
     }));
     mem.lists.set(section.key, { at: Date.now(), data });
     return data;
@@ -96,6 +97,19 @@ globalThis.__uispaNoReach = async (url, fallback) => {
 
     async movieFiles(_cfg, item) {
       return { resolutions: item.resolutions, files: item.files };
+    },
+
+    // Carpetas en el disco del servidor: la de la serie (si la hay) y las de las
+    // bibliotecas de ese tipo, empezando por la del propio título.
+    async folders(cfg, item, type) {
+      const libs = (await sections(cfg)).filter((s) => s.type === type);
+      libs.sort((a, b) => (b.key === item?.section) - (a.key === item?.section));
+      let own = null;
+      if (item && type === "show") {
+        const mc = await get(cfg, `/library/metadata/${item.id}`);
+        own = ((mc.Metadata || [])[0]?.Location || []).map((l) => l.path).find(Boolean) || null;
+      }
+      return { own, libraries: libs.flatMap((s) => s.locations) };
     },
 
     async test(cfg) {

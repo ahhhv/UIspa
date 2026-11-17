@@ -50,14 +50,15 @@
       const r = await get(cfg, "/Items", {
         Recursive: "true",
         IncludeItemTypes: kinds[type],
-        Fields: "ProviderIds,ProductionYear,OriginalTitle"
+        Fields: "ProviderIds,ProductionYear,OriginalTitle,Path"
       });
       const data = (r.Items || []).map((m) => ({
         id: m.Id,
         title: m.Name,
         originalTitle: m.OriginalTitle,
         year: m.ProductionYear,
-        imdb: (m.ProviderIds && (m.ProviderIds.Imdb || m.ProviderIds.IMDB)) || null
+        imdb: (m.ProviderIds && (m.ProviderIds.Imdb || m.ProviderIds.IMDB)) || null,
+        path: m.Path || null
       }));
       mem.lists.set(type, { at: Date.now(), data });
       return data;
@@ -77,6 +78,17 @@
       const r = await get(cfg, "/Items", { Ids: item.id, Fields: "MediaSources" });
       const files = filesOf((r.Items || [])[0] || {});
       return { resolutions: files.map((f) => f.res).filter(Boolean), files };
+    },
+
+    // Carpetas en el disco del servidor: la de la serie y las de las bibliotecas
+    async folders(cfg, item, type) {
+      const want = type === "show" ? "tvshows" : "movies";
+      const vf = await get(cfg, "/Library/VirtualFolders");
+      const libraries = (vf || []).filter((f) => f.CollectionType === want).flatMap((f) => f.Locations || []);
+      const own = type === "show" ? item?.path || null : null;
+      // la biblioteca que contiene el título, primero
+      if (item?.path) libraries.sort((a, b) => item.path.startsWith(b) - item.path.startsWith(a));
+      return { own, libraries };
     },
 
     async test(cfg) {

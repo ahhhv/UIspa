@@ -39,6 +39,7 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 - «Seleccionados» / «Todos» en cada versión.
 - Marca **«Recordar esta carpeta»** y se guarda para esa serie (también para sus otras temporadas): la próxima vez el recuadro se abre directamente en ella y basta con pulsar Intro. Las carpetas guardadas se ven y se olvidan en Ajustes → Descargas → NAS.
 - Las últimas carpetas usadas salen como atajos; cuántas, se elige en Ajustes → Descargas → NAS (0 para ninguna).
+- Con **Plex o Jellyfin** conectado, el recuadro se abre en la carpeta de la serie si ya la tienes en tu biblioteca, y las películas en la carpeta de tu biblioteca de películas (atajo 📺). Si el servidor va en Docker y ve otras rutas (`/tv/…` en vez de `medialibrary/tv/…`), UIspa busca la equivalencia solo; si no la encuentra, se puede escribir en Ajustes → Descargas → NAS.
 - Al enviar eliges la carpeta navegando por las carpetas del NAS, o escribiéndola. Se abre en la última que usaste, tienes atajos a la carpeta por defecto y a las recientes, y puedes crear carpetas nuevas.
 
 **Favoritos**

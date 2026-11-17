@@ -37,7 +37,12 @@ api.browserAction.onClicked.addListener(() => api.runtime.openOptionsPage());
 // Copia de respaldo: el content script puede perder el "gesto de usuario"
 // tras esperar la petición AJAX; el background tiene clipboardWrite.
 api.runtime.onMessage.addListener((msg) => {
-  if (msg?.action === "open-options") { api.runtime.openOptionsPage(); return; }
+  if (msg?.action === "open-options") {
+    // con «hash», directamente en un apartado (p. ej. «descargas/nas»)
+    if (msg.hash) api.tabs.create({ url: api.runtime.getURL("options.html#" + msg.hash) });
+    else api.runtime.openOptionsPage();
+    return;
+  }
   if (msg?.action !== "bg-copy") return;
   return navigator.clipboard.writeText(msg.text).then(() => ({ ok: true }), () => ({ ok: false }));
 });

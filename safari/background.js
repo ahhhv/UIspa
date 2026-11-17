@@ -55,7 +55,12 @@ async function copyFromBackground(text) {
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg?.action === "open-options") { chrome.runtime.openOptionsPage(); return; }
+  if (msg?.action === "open-options") {
+    // con «hash», directamente en un apartado (p. ej. «descargas/nas»)
+    if (msg.hash) chrome.tabs.create({ url: chrome.runtime.getURL("options.html#" + msg.hash) });
+    else chrome.runtime.openOptionsPage();
+    return;
+  }
   if (msg?.action !== "bg-copy") return;
   copyFromBackground(msg.text).then((ok) => sendResponse({ ok }), () => sendResponse({ ok: false }));
   return true; // respuesta asíncrona
