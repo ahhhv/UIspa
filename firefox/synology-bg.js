@@ -171,7 +171,7 @@
     await ds(cfg, "SYNO.DownloadStation.Task", params, TASK_ERRORS);
     // recuerda las últimas carpetas usadas para ofrecerlas la próxima vez
     if (dest) {
-      const recent = [dest, ...cfg.recent.filter((d) => d !== dest)].slice(0, 6);
+      const recent = [dest, ...cfg.recent.filter((d) => d !== dest)].slice(0, 20);
       await api.storage.local.set({ dsRecent: recent });
     }
     return { ok: true, count: links.length, destination: dest || "" };

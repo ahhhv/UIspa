@@ -37,7 +37,8 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 
 **Enviar a Synology Download Station (opcional)**
 - «Seleccionados» / «Todos» en cada versión.
-- La carpeta que elijas se **recuerda para cada serie** (también para sus otras temporadas): la próxima vez el recuadro se abre directamente en ella y basta con pulsar Intro. Las carpetas guardadas se ven y se olvidan en Ajustes → Descargas → NAS.
+- Marca **«Recordar esta carpeta»** y se guarda para esa serie (también para sus otras temporadas): la próxima vez el recuadro se abre directamente en ella y basta con pulsar Intro. Las carpetas guardadas se ven y se olvidan en Ajustes → Descargas → NAS.
+- Las últimas carpetas usadas salen como atajos; cuántas, se elige en Ajustes → Descargas → NAS (0 para ninguna).
 - Al enviar eliges la carpeta navegando por las carpetas del NAS, o escribiéndola. Se abre en la última que usaste, tienes atajos a la carpeta por defecto y a las recientes, y puedes crear carpetas nuevas.
 
 **Favoritos**

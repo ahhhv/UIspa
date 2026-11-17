@@ -652,6 +652,18 @@ const uiNav = (() => {
     }
   }
   renderNasSeries();
+  // Número de carpetas recientes en el recuadro del NAS
+  (async () => {
+    const box = $("dsRecentMax");
+    if (!box) return;
+    const { dsRecentMax } = await api.storage.local.get("dsRecentMax");
+    if (Number.isInteger(dsRecentMax)) box.value = dsRecentMax;
+    box.addEventListener("change", async () => {
+      const n = Math.max(0, Math.min(20, parseInt(box.value, 10) || 0));
+      box.value = n;
+      await api.storage.local.set({ dsRecentMax: n });
+    });
+  })();
   api.storage.onChanged.addListener((ch, area) => { if (area === "local" && ch.nasSeries) renderNasSeries(); });
 
   $("emuleBtns").addEventListener("change", async (e) => {

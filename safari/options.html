@@ -156,8 +156,12 @@
     </div>
     <div id="dsStatus" role="status"></div>
 
+    <label for="dsRecentMax">Carpetas recientes que se ofrecen al enviar</label>
+    <input id="dsRecentMax" type="number" min="0" max="20" step="1" value="6" style="max-width:90px">
+    <p class="muted small">Las últimas carpetas usadas salen como atajos en el recuadro del NAS. Pon 0 para no mostrar ninguna.</p>
+
     <h3>Carpetas por serie</h3>
-    <p class="muted small">Al enviar al NAS desde una ficha, la carpeta que elijas se recuerda para esa serie (también para sus otras temporadas) y la próxima vez se abre directamente ahí.</p>
+    <p class="muted small">Al enviar al NAS desde una ficha, si marcas «Recordar esta carpeta», se guarda para esa serie (también para sus otras temporadas) y la próxima vez se abre directamente ahí.</p>
     <ul id="nasSeriesList" class="fav-list"></ul>
 
     <details>

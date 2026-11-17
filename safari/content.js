@@ -298,6 +298,8 @@
     try { st = (await api.runtime.sendMessage({ action: "ds-status" })) || {}; } catch (_) {}
     const series = seriesOfPage();
     const saved = await seriesFolder(series);
+    let maxRecent = 6;
+    try { const { dsRecentMax } = await api.storage.local.get("dsRecentMax"); if (Number.isInteger(dsRecentMax)) maxRecent = dsRecentMax; } catch (_) {}
     return new Promise((resolve) => {
       const pop = el("div", "hc-nas-pop");
       pop.setAttribute("role", "dialog");
@@ -314,7 +316,8 @@
       const note = el("div", "hc-nas-note");
 
       const chips = el("div", "hc-nas-chips");
-      const options = [...new Set([st.dest, ...(st.recent || [])].filter(Boolean))].filter((d) => d !== saved?.path).slice(0, 6);
+      const recents = (st.recent || []).filter((d) => d && d !== st.dest && d !== saved?.path).slice(0, maxRecent);
+      const options = [...new Set([st.dest, ...recents].filter(Boolean))].filter((d) => d !== saved?.path);
       if (saved?.path) {
         const c = el("button", "hc-nas-chip-series", `📌 ${saved.path}`);
         c.type = "button";
@@ -333,12 +336,12 @@
       const ok = el("button", "hc-nas-ok", "Enviar aquí");
       cancel.type = ok.type = "button";
       row.append(cancel, ok);
-      // «Recordar para esta serie»: marcado por defecto
+      // «Recordar para esta serie»: desmarcado por defecto
       let remember = null;
       if (series) {
         remember = el("input");
         remember.type = "checkbox";
-        remember.checked = true;
+        remember.checked = !!saved; // desmarcada salvo que la serie ya tenga carpeta
         const rl = el("label", "hc-nas-remember");
         rl.append(remember, ` Recordar esta carpeta para «${series.name}»`);
       }
