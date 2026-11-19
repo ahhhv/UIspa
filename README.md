@@ -225,7 +225,7 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 
 ## Novedades
 
-**4.4.1**
+**4.4.2**
 - **Títulos nuevos en su biblioteca:** lo que aún no está en Plex/Jellyfin se abre en la biblioteca elegida en Ajustes → Descargas → NAS (una para series y otra para películas), en vez de en la última carpeta usada.
 - **Serie nueva:** propone una carpeta con su nombre y pregunta antes de crearla («Crear y enviar», «Enviar a la biblioteca» o «Volver»). También se pregunta al enviar a cualquier carpeta que no exista.
 - Todas las bibliotecas salen como atajos 📺 con su nombre (antes solo las 4 primeras).
