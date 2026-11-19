@@ -109,7 +109,7 @@ globalThis.__uispaNoReach = async (url, fallback) => {
         const mc = await get(cfg, `/library/metadata/${item.id}`);
         own = ((mc.Metadata || [])[0]?.Location || []).map((l) => l.path).find(Boolean) || null;
       }
-      return { own, libraries: libs.flatMap((s) => s.locations) };
+      return { own, libraries: libs.flatMap((s) => s.locations.map((path) => ({ name: s.title, path }))) };
     },
 
     async test(cfg) {

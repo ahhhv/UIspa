@@ -71,7 +71,7 @@
         const { best } = await findItem(srv, cfg, q, type);
         const f = await srv.folders(cfg, best, type);
         if (!out.own && f.own) { out.own = f.own; out.server = srv.name; }
-        for (const l of f.libraries) if (!out.libraries.includes(l)) out.libraries.push(l);
+        for (const l of f.libraries) if (!out.libraries.some((x) => x.path === l.path)) out.libraries.push(l);
         out.server = out.server || srv.name;
       } catch (_) {}
     }

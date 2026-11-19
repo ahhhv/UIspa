@@ -248,21 +248,60 @@
     return null;
   }
 
+  // Las rutas ya traducidas se guardan un rato: cada traducción cuesta peticiones al NAS
+  const resolved = new Map();
+  async function resolveCached(cfg, raw) {
+    const hit = resolved.get(raw);
+    if (hit && Date.now() - hit.t < 10 * 60e3) return hit.path;
+    const path = await resolvePath(cfg, raw);
+    resolved.set(raw, { t: Date.now(), path });
+    return path;
+  }
+  async function libraries(cfg, f) {
+    const out = [];
+    for (const l of f.libraries) {
+      const path = await resolveCached(cfg, l.path);
+      if (path && !out.some((x) => x.path === path)) out.push({ name: l.name, path });
+    }
+    return out;
+  }
+
+  // Carpeta propuesta para un título. «def» es la biblioteca para lo que aún no
+  // está en tu servidor: la elegida en los ajustes o, si no hay, la primera.
   async function suggest(query) {
     const cfg = await config();
     const media = globalThis.__uispaMedia;
     if (!cfg || !media?.folders || !query) return { ok: true, own: null, libraries: [] };
+    const type = query.type === "movie" ? "movie" : "show";
     const f = await media.folders(query);
-    const own = f.own ? await resolvePath(cfg, f.own) : null;
-    const libraries = [];
-    for (const l of f.libraries.slice(0, 4)) {
-      const d = await resolvePath(cfg, l);
-      if (d && !libraries.includes(d)) libraries.push(d);
-    }
-    return { ok: true, server: f.server, own, libraries };
+    const own = f.own ? await resolveCached(cfg, f.own) : null;
+    const libs = await libraries(cfg, f);
+    const key = type === "movie" ? "nasLibMovie" : "nasLibShow";
+    const { [key]: chosen } = await api.storage.local.get(key);
+    const def = libs.find((l) => l.path === chosen)?.path || chosen || libs[0]?.path || null;
+    return { ok: true, server: f.server, type, own, libraries: libs, def };
+  }
+
+  // Bibliotecas de series y de películas, para elegir la de por defecto en los ajustes
+  async function allLibraries() {
+    const cfg = await config();
+    const media = globalThis.__uispaMedia;
+    if (!cfg) return { ok: false, error: "Configura primero el NAS" };
+    if (!media?.folders) return { ok: true, show: [], movie: [] };
+    const [s, m] = [await media.folders({ type: "show" }), await media.folders({ type: "movie" })];
+    return { ok: true, show: await libraries(cfg, s), movie: await libraries(cfg, m) };
   }
 
   api.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg?.action === "ds-libraries") {
+      allLibraries().then(sendResponse, (e) => sendResponse({ ok: false, error: e.message }));
+      return true;
+    }
+    if (msg?.action === "ds-exists") {
+      config().then((cfg) => cfg ? exists(cfg, cleanDir(msg.path || "")) : false)
+        .then((x) => sendResponse({ ok: true, exists: x }), (e) => sendResponse({ ok: false, error: e.message }));
+      return true;
+    }
     if (msg?.action === "ds-suggest") {
       suggest(msg.query).then(sendResponse, (e) => sendResponse({ ok: false, error: e.message }));
       return true;

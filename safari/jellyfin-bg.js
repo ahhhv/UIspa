@@ -84,10 +84,11 @@
     async folders(cfg, item, type) {
       const want = type === "show" ? "tvshows" : "movies";
       const vf = await get(cfg, "/Library/VirtualFolders");
-      const libraries = (vf || []).filter((f) => f.CollectionType === want).flatMap((f) => f.Locations || []);
+      const libraries = (vf || []).filter((f) => f.CollectionType === want)
+        .flatMap((f) => (f.Locations || []).map((path) => ({ name: f.Name, path })));
       const own = type === "show" ? item?.path || null : null;
       // la biblioteca que contiene el título, primero
-      if (item?.path) libraries.sort((a, b) => item.path.startsWith(b) - item.path.startsWith(a));
+      if (item?.path) libraries.sort((a, b) => item.path.startsWith(b.path) - item.path.startsWith(a.path));
       return { own, libraries };
     },
 

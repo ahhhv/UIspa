@@ -147,3 +147,7 @@ html.hcm-light .hc-plex-same.hc-srv-jellyfin, html.hcm-light .hc-plex-other.hc-s
 .hc-nas-pop .hc-nas-chip-media { border-color: #e5a00d; color: #f0c25a; }
 .hc-nas-pop .hc-nas-remember .hc-nas-all { margin-left: auto; color: #8ab8ff; font-size: 12px; text-decoration: none; white-space: nowrap; }
 .hc-nas-pop .hc-nas-remember .hc-nas-all:hover { text-decoration: underline; }
+.hc-nas-pop .hc-nas-note.hc-nas-hint { color: #9fb3d1; }
+.hc-nas-pop .hc-nas-confirm { margin-top: 12px; padding: 10px 12px; border: 1px solid #5096ff; border-radius: 10px; background: rgba(80, 150, 255, .08); }
+.hc-nas-pop .hc-nas-confirm-text { color: #e6ebf5; font-size: 13px; margin-bottom: 10px; }
+.hc-nas-pop .hc-nas-confirm .hc-nas-actions { margin-top: 0; flex-wrap: wrap; }

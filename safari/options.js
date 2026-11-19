@@ -652,6 +652,32 @@ const uiNav = (() => {
     }
   }
   renderNasSeries();
+  // Bibliotecas por defecto para lo que aún no está en Plex / Jellyfin
+  async function loadLibraries() {
+    const selS = $("nasLibShow"), selM = $("nasLibMovie"), noteEl = $("nasLibNote");
+    if (!selS) return;
+    const { nasLibShow = "", nasLibMovie = "" } = await api.storage.local.get(["nasLibShow", "nasLibMovie"]);
+    let r;
+    try { r = await api.runtime.sendMessage({ action: "ds-libraries" }); } catch (e) { r = { ok: false, error: e.message }; }
+    const fill = (sel, libs, cur) => {
+      sel.textContent = "";
+      const first = new Option(libs.length ? "La primera de la lista" : "—", "");
+      sel.append(first);
+      for (const l of libs) sel.append(new Option(`${l.name} · ${l.path}`, l.path));
+      if (cur && !libs.some((l) => l.path === cur)) sel.append(new Option(`${cur} (guardada)`, cur));
+      sel.value = cur;
+      sel.disabled = !libs.length && !cur;
+    };
+    fill(selS, r?.show || [], nasLibShow);
+    fill(selM, r?.movie || [], nasLibMovie);
+    noteEl.textContent = !r?.ok ? (r?.error || "No se pudieron leer las bibliotecas")
+      : (!r.show.length && !r.movie.length ? "Conecta Plex o Jellyfin y el NAS para elegir las bibliotecas." : "");
+  }
+  for (const [id, key] of [["nasLibShow", "nasLibShow"], ["nasLibMovie", "nasLibMovie"]]) {
+    $(id)?.addEventListener("change", (e) => api.storage.local.set({ [key]: e.target.value }));
+  }
+  loadLibraries();
+
   // Equivalencias de rutas entre Plex / Jellyfin y el NAS
   (async () => {
     const box = $("pathMap"), auto = $("pathMapAuto");

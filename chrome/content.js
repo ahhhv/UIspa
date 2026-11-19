@@ -290,6 +290,9 @@
     } catch (_) {}
   }
 
+  // Nombre válido para una carpeta del NAS
+  const safeName = (t) => String(t || "").replace(/[\\/:*?"<>|,]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   async function pickFolder(anchor) {
     if (proxyAnchor?.isConnected) anchor = proxyAnchor;
@@ -376,6 +379,7 @@
         list.textContent = "";
         list.append(el("div", "hc-nas-empty", "Cargando…"));
         note.textContent = "";
+        note.classList.remove("hc-nas-hint");
         let r;
         try { r = await api.runtime.sendMessage({ action: "ds-list", path }); } catch (e) { r = { ok: false, error: e.message }; }
         if (my !== seq) return; // se pidió otra carpeta mientras tanto
@@ -448,14 +452,55 @@
       };
       const outside = (e) => { if (!pop.contains(e.target)) close(null); };
       cancel.addEventListener("click", () => close(null));
-      ok.addEventListener("click", () => {
-        const dest = input.value.trim().replace(/^\/+|\/+$/g, "");
+      const finish = (dest) => {
         if (remember?.checked && dest) rememberFolder(series, dest);
         else if (remember && !remember.checked && saved) rememberFolder(series, null);
         close(dest);
+      };
+      // Antes de enviar se comprueba que la carpeta existe; si no, se pregunta si crearla
+      ok.addEventListener("click", async () => {
+        const dest = input.value.trim().replace(/^\/+|\/+$/g, "");
+        if (!dest) return finish(dest);
+        ok.disabled = true;
+        let r;
+        try { r = await api.runtime.sendMessage({ action: "ds-exists", path: dest }); } catch (_) { r = null; }
+        ok.disabled = false;
+        if (!r?.ok || r.exists) return finish(dest);
+        const parent = dest.split("/").slice(0, -1).join("/");
+        const name = dest.split("/").pop();
+        let pr;
+        try { pr = parent ? await api.runtime.sendMessage({ action: "ds-exists", path: parent }) : { ok: true, exists: false }; } catch (_) { pr = null; }
+        if (!pr?.exists) { note.classList.remove("hc-nas-hint"); note.textContent = `La carpeta ${dest} no existe. Elige otra o créala con «Nueva carpeta».`; return; }
+        askCreate(parent, name);
       });
+      function askCreate(parent, name) {
+        const box = el("div", "hc-nas-confirm");
+        box.append(el("div", "hc-nas-confirm-text", `La carpeta «${name}» no existe en ${parent}. ¿La creo?`));
+        const btns = el("div", "hc-nas-actions");
+        const back = el("button", null, "Volver");
+        const plain = el("button", null, `Enviar a ${parent.split("/").pop()}`);
+        const yes = el("button", "hc-nas-ok", "Crear y enviar");
+        back.type = plain.type = yes.type = "button";
+        plain.title = `Enviar a ${parent} sin crear la carpeta`;
+        btns.append(back, plain, yes);
+        box.append(btns);
+        row.replaceWith(box);
+        yes.focus();
+        back.addEventListener("click", () => { box.replaceWith(row); ok.focus(); });
+        plain.addEventListener("click", () => finish(parent));
+        yes.addEventListener("click", async () => {
+          yes.disabled = plain.disabled = back.disabled = true;
+          let r;
+          try { r = await api.runtime.sendMessage({ action: "ds-mkdir", path: parent, name }); } catch (e) { r = { ok: false, error: e.message }; }
+          if (r?.ok) return finish(r.path || `${parent}/${name}`);
+          yes.disabled = plain.disabled = back.disabled = false;
+          box.replaceWith(row);
+          note.classList.remove("hc-nas-hint");
+          note.textContent = r?.error || "No se pudo crear la carpeta";
+        });
+      }
       pop.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && e.target.type !== "checkbox") { e.preventDefault(); ok.click(); }
+        if (e.key === "Enter" && e.target.type !== "checkbox" && e.target.tagName !== "BUTTON" && ok.isConnected) { e.preventDefault(); ok.click(); }
         if (e.key === "Escape") { e.preventDefault(); close(null); }
         e.stopPropagation();
       });
@@ -480,22 +525,26 @@
       const firstSeq = seq;
       input.focus();
 
-      // Cuando responde Plex / Jellyfin: atajos 📺 y, si no hay carpeta guardada y aún
-      // no has navegado, se abre la de la serie (series que ya tienes) o la de la
-      // biblioteca de películas. Las series que no están en la biblioteca siguen
-      // empezando en la carpeta de siempre.
-      sugP.then((sug) => {
+      // Cuando responde Plex / Jellyfin: atajos 📺 con la carpeta del título y todas las
+      // bibliotecas de su tipo. Si no hay carpeta guardada y aún no has navegado, se
+      // abre la del título (si ya lo tienes) o la biblioteca elegida para su tipo.
+      sugP.then(async (sug) => {
         if (!sug?.ok || !pop.isConnected) return;
-        const isMovie = info.type === "movie";
+        const isMovie = sug.type === "movie";
+        const where = sug.server || "tu servidor";
         const targets = [];
-        if (sug.own) targets.push({ path: sug.own, title: `Carpeta de «${info.title}» en ${sug.server || "tu servidor"}` });
-        if (isMovie || !sug.own) for (const l of sug.libraries) targets.push({ path: l, title: `Biblioteca de ${sug.server || "tu servidor"}` });
+        if (sug.own) targets.push({ label: `📺 ${info.title}`, path: sug.own, title: `Carpeta de «${info.title}» en ${where}: ${sug.own}` });
+        // la biblioteca elegida para este tipo, la primera
+        const libs = [...sug.libraries].sort((a, b) => (b.path === sug.def) - (a.path === sug.def));
+        for (const l of libs) targets.push({ label: `📺 ${l.name}`, path: l.path, title: `Biblioteca «${l.name}» de ${where}: ${l.path}` });
+        // Si una carpeta reciente coincide con una de estas, se queda solo la 📺
+        for (const c of [...chips.children]) if (!c.classList.contains("hc-nas-chip-series") && targets.some((t) => t.path === c.dataset.path)) c.remove();
         const shown = new Set([saved?.path, ...[...chips.children].map((c) => c.dataset.path)]);
         const fresh = targets.filter((t) => t.path && !shown.has(t.path));
         if (fresh.length) {
           const first = chips.querySelector(".hc-nas-chip-series");
           fresh.reverse().forEach((t) => {
-            const c = el("button", "hc-nas-chip-media", `📺 ${t.path}`);
+            const c = el("button", "hc-nas-chip-media", t.label);
             c.type = "button";
             c.title = t.title;
             c.dataset.path = t.path;
@@ -504,9 +553,23 @@
           });
           if (!chips.isConnected) (remember?.parentElement || row).before(chips);
         }
-        const target = isMovie ? sug.libraries[0] : sug.own;
-        if (!saved?.path && target && seq === firstSeq) browse(target).then(place);
-        else place();
+        if (saved?.path || seq !== firstSeq) { place(); return; } // tu carpeta guardada o ya has navegado
+        if (sug.own) { await browse(sug.own); place(); return; }
+        if (!sug.def) { place(); return; }
+        // Título que aún no está en tu servidor: su biblioteca y, si es una serie,
+        // una carpeta con su nombre (se pregunta si crearla al enviar)
+        const name = isMovie ? "" : safeName(series?.name || info.title);
+        let there = false;
+        if (name) { try { there = (await api.runtime.sendMessage({ action: "ds-exists", path: `${sug.def}/${name}` }))?.exists; } catch (_) {} }
+        if (seq !== firstSeq || !pop.isConnected) return;
+        if (there) { await browse(`${sug.def}/${name}`); place(); return; } // ya tiene carpeta en el NAS
+        await browse(sug.def);
+        if (name && seq === firstSeq + 1 && pop.isConnected) {
+          input.value = `${sug.def}/${name}`;
+          note.textContent = `Carpeta nueva «${name}» dentro de ${sug.def}: te pregunto antes de crearla.`;
+          note.classList.add("hc-nas-hint");
+        }
+        place();
       });
     });
   }
