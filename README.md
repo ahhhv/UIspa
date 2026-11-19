@@ -225,6 +225,11 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 
 ## Novedades
 
+**4.4.1**
+- **Títulos nuevos en su biblioteca:** lo que aún no está en Plex/Jellyfin se abre en la biblioteca elegida en Ajustes → Descargas → NAS (una para series y otra para películas), en vez de en la última carpeta usada.
+- **Serie nueva:** propone una carpeta con su nombre y pregunta antes de crearla («Crear y enviar», «Enviar a la biblioteca» o «Volver»). También se pregunta al enviar a cualquier carpeta que no exista.
+- Todas las bibliotecas salen como atajos 📺 con su nombre (antes solo las 4 primeras).
+
 **4.4.0**
 - **Carpeta del NAS según Plex / Jellyfin:** si la serie ya está en tu biblioteca, el recuadro de Download Station se abre en su carpeta; las películas, en la carpeta de tu biblioteca de películas. Funciona aunque el servidor vaya en Docker: UIspa averigua la equivalencia de rutas (o se puede escribir en Ajustes → Descargas → NAS).
 - «Recordar esta carpeta» sale desmarcada, salvo que la serie ya tuviera una guardada. Enlace «Ver guardadas» en el propio recuadro.
