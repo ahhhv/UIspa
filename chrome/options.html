@@ -75,6 +75,37 @@
     </div>
     <label class="check"><input id="lookInfinite" type="checkbox"> Cargar más títulos al llegar al final de la página (scroll infinito)</label>
     <div id="lookStatus" role="status" class="muted small"></div>
+
+    <h3>Calidad preferida</h3>
+    <p class="muted small">En la ficha se resaltan las versiones que encajan con lo que marques. Una versión encaja si cumple todas las categorías en las que hayas marcado algo; si no marcas nada en una categoría, ahí vale cualquiera.</p>
+    <div class="qpref" id="qpref">
+      <fieldset><legend>Resolución</legend>
+        <label class="check"><input type="checkbox" data-q="res" value="2160"> 2160p (4K)</label>
+        <label class="check"><input type="checkbox" data-q="res" value="1080"> 1080p</label>
+        <label class="check"><input type="checkbox" data-q="res" value="720"> 720p</label>
+        <label class="check"><input type="checkbox" data-q="res" value="sd"> SD</label>
+      </fieldset>
+      <fieldset><legend>Origen</legend>
+        <label class="check"><input type="checkbox" data-q="src" value="webdl"> WEB-DL</label>
+        <label class="check"><input type="checkbox" data-q="src" value="webrip"> WEBRip</label>
+        <label class="check"><input type="checkbox" data-q="src" value="bdrip"> BDRip / BluRay</label>
+        <label class="check"><input type="checkbox" data-q="src" value="remux"> Remux</label>
+        <label class="check"><input type="checkbox" data-q="src" value="hdtv"> HDTV</label>
+        <label class="check"><input type="checkbox" data-q="src" value="dvdrip"> DVDRip</label>
+        <label class="check"><input type="checkbox" data-q="src" value="upscale"> Reescalado (IA)</label>
+      </fieldset>
+      <fieldset><legend>Códec</legend>
+        <label class="check"><input type="checkbox" data-q="codec" value="x264"> x264 (H.264)</label>
+        <label class="check"><input type="checkbox" data-q="codec" value="x265"> x265 (HEVC)</label>
+        <label class="check"><input type="checkbox" data-q="codec" value="av1"> AV1</label>
+        <label class="check"><input type="checkbox" data-q="codec" value="xvid"> XviD / DivX</label>
+      </fieldset>
+    </div>
+    <div class="row">
+      <button type="button" id="qprefReco" class="ghost">Recomendado para Apple TV + NAS Synology</button>
+      <button type="button" id="qprefClear" class="ghost">Quitar</button>
+    </div>
+    <p class="muted small">Recomendado: 1080p · WEB-DL, WEBRip o BDRip · x264 o x265. Lo reproduce el Apple TV directamente y, si alguna vez hay que convertir, un NAS con gráfica Intel lo hace por hardware.</p>
   </section>
 
   <section id="sec-media">

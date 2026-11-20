@@ -652,6 +652,24 @@ const uiNav = (() => {
     }
   }
   renderNasSeries();
+  // Calidad preferida: se resalta en la ficha
+  (async () => {
+    const box = $("qpref");
+    if (!box) return;
+    const inputs = [...box.querySelectorAll("input[data-q]")];
+    const show = (pref) => { for (const i of inputs) i.checked = !!pref?.[i.dataset.q]?.includes(i.value); };
+    const save = () => {
+      const pref = { res: [], src: [], codec: [] };
+      for (const i of inputs) if (i.checked) pref[i.dataset.q].push(i.value);
+      return api.storage.local.set({ qualityPref: pref });
+    };
+    const { qualityPref } = await api.storage.local.get("qualityPref");
+    show(qualityPref);
+    inputs.forEach((i) => i.addEventListener("change", save));
+    $("qprefReco").addEventListener("click", () => { show({ res: ["1080"], src: ["webdl", "webrip", "bdrip"], codec: ["x264", "x265"] }); save(); });
+    $("qprefClear").addEventListener("click", () => { show(null); save(); });
+  })();
+
   // Bibliotecas por defecto para lo que aún no está en Plex / Jellyfin
   async function loadLibraries() {
     const selS = $("nasLibShow"), selM = $("nasLibMovie"), noteEl = $("nasLibNote");

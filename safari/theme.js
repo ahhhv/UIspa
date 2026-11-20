@@ -797,6 +797,7 @@
       main.append(sec);
       if (isLinks) {
         try { organiseVersions(sec, w); } catch (e) { console.error("[UIspa] versiones:", e); }
+        try { markPreferred(w); } catch (e) { console.error("[UIspa] calidad preferida:", e); }
       }
     });
 
@@ -831,6 +832,51 @@
       if (label) facts[label] = txt(c).replace(/^[^:]*:\s*/, "");
     });
     return facts;
+  }
+
+  // ------------------------------------------------------------ calidad preferida
+  // Se lee de «WEB-DL 1080p: mkv (x264-AAC)» y de los datos de la versión.
+  function qualityOf(text) {
+    const t = String(text || "").toLowerCase();
+    const res = /2160p|\b4k\b|\buhd\b/.test(t) ? "2160" : /1080[pi]/.test(t) ? "1080" : /720p/.test(t) ? "720" : "sd";
+    const src = /reescal|upscal/.test(t) ? "upscale"
+      : /remux/.test(t) ? "remux"
+      : /web[ ._-]?dl/.test(t) ? "webdl"
+      : /web[ ._-]?rip/.test(t) ? "webrip"
+      : /b[dr][ ._-]?rip|blu[ ._-]?ray|\bbd\b/.test(t) ? "bdrip"
+      : /hdtv/.test(t) ? "hdtv"
+      : /dvd/.test(t) ? "dvdrip" : null;
+    const codec = /\bav1\b/.test(t) ? "av1"
+      : /x265|h\.?265|hevc/.test(t) ? "x265"
+      : /x264|h\.?264|\bavc\b/.test(t) ? "x264"
+      : /xvid|divx/.test(t) ? "xvid" : null;
+    return { res, src, codec };
+  }
+  // Encaja si cumple todas las categorías marcadas (una categoría sin marcar vale
+  // todo; si la versión no dice su origen o su códec, eso no la descarta)
+  function matchesPref(q, pref) {
+    const cats = ["res", "src", "codec"].filter((k) => pref?.[k]?.length);
+    return cats.length > 0 && cats.every((k) => q[k] == null || pref[k].includes(q[k]));
+  }
+  function markPreferred(win) {
+    if (!ext?.storage) return;
+    const apply = (pref) => {
+      for (const td of $$("table.T1 > tbody > tr > td, table.T1 > tr > td", win)) {
+        const h2 = $(":scope > h2", td);
+        if (!h2) continue;
+        const f = versionFacts(td);
+        const q = qualityOf([txt(h2), f["Calidad"], f["Formato"]].join(" "));
+        const ok = matchesPref(q, pref);
+        td.classList.toggle("hcm-pref", ok);
+        td.querySelectorAll(".hcm-pref-badge").forEach((b) => b.remove());
+        if (!ok) continue;
+        const badge = h("span", { class: "hcm-pref-badge", title: "Encaja con tu calidad preferida (Ajustes → Apariencia)" }, "★ Tu calidad");
+        const where = $(":scope > .hcm-ver-head .hcm-ver-title", td) || h2;
+        where.append(badge);
+      }
+    };
+    ext.storage.local.get("qualityPref").then((r) => apply(r.qualityPref), () => {});
+    ext.storage.onChanged.addListener((ch, area) => { if (area === "local" && ch.qualityPref) apply(ch.qualityPref.newValue); });
   }
 
   function organiseVersions(sec, win) {
