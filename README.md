@@ -226,6 +226,9 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 
 ## Novedades
 
+**4.5.1**
+- **Presets de calidad preferida:** Apple TV, Smart TV, Fire TV Stick, Fire TV Stick 4K Max, Chromecast con Google TV, Nvidia Shield, Kodi, móvil, NAS sin conversión por hardware, ahorrar espacio, equilibrado y máxima calidad. Cada uno explica por qué; si retocas las casillas pasa a «Personalizado».
+
 **4.5.0**
 - **Calidad preferida:** en Ajustes → Apariencia marcas resolución, origen y códec (o pulsas «Recomendado para Apple TV + NAS Synology») y en cada ficha se resaltan con «★ Tu calidad» las versiones que encajan.
 
