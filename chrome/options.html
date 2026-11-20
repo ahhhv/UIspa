@@ -78,6 +78,14 @@
 
     <h3>Calidad preferida</h3>
     <p class="muted small">En la ficha se resaltan las versiones que encajan con lo que marques. Una versión encaja si cumple todas las categorías en las que hayas marcado algo; si no marcas nada en una categoría, ahí vale cualquiera.</p>
+    <div class="row">
+      <div style="flex:1">
+        <label for="qprefPreset">Preset</label>
+        <select id="qprefPreset"></select>
+      </div>
+      <button type="button" id="qprefClear" class="ghost" style="align-self:flex-end">Quitar</button>
+    </div>
+    <p id="qprefWhy" class="muted small"></p>
     <div class="qpref" id="qpref">
       <fieldset><legend>Resolución</legend>
         <label class="check"><input type="checkbox" data-q="res" value="2160"> 2160p (4K)</label>
@@ -101,11 +109,6 @@
         <label class="check"><input type="checkbox" data-q="codec" value="xvid"> XviD / DivX</label>
       </fieldset>
     </div>
-    <div class="row">
-      <button type="button" id="qprefReco" class="ghost">Recomendado para Apple TV + NAS Synology</button>
-      <button type="button" id="qprefClear" class="ghost">Quitar</button>
-    </div>
-    <p class="muted small">Recomendado: 1080p · WEB-DL, WEBRip o BDRip · x264 o x265. Lo reproduce el Apple TV directamente y, si alguna vez hay que convertir, un NAS con gráfica Intel lo hace por hardware.</p>
   </section>
 
   <section id="sec-media">

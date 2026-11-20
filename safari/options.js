@@ -652,22 +652,73 @@ const uiNav = (() => {
     }
   }
   renderNasSeries();
-  // Calidad preferida: se resalta en la ficha
+  // Calidad preferida: se resalta en la ficha. Los presets solo rellenan las
+  // casillas; si luego las cambias, pasa a «Personalizado».
+  const ORIG = ["webdl", "webrip", "bdrip"];
+  const QPRESETS = [
+    { id: "appletv", name: "Apple TV + Plex", res: ["1080"], src: ORIG, codec: ["x264", "x265"],
+      why: "El Apple TV 4K reproduce H.264 y HEVC directamente. Ningún Apple TV decodifica AV1 por hardware, así que el NAS tendría que convertirlo." },
+    { id: "smarttv", name: "Smart TV con app de Plex (LG, Samsung…)", res: ["1080", "2160"], src: ORIG, codec: ["x264", "x265"],
+      why: "Las teles modernas leen H.264 y HEVC, también en 4K. AV1 solo lo leen algunos modelos recientes, por eso queda fuera." },
+    { id: "firetv", name: "Fire TV Stick (HD, Lite, 4K)", res: ["1080", "2160"], src: ORIG, codec: ["x264", "x265"],
+      why: "Todos los Fire TV salvo los de primera generación leen HEVC. Los modelos HD, Lite y 4K no tienen AV1 por hardware." },
+    { id: "firetvmax", name: "Fire TV Stick 4K Max", res: ["1080", "2160"], src: ORIG, codec: ["x264", "x265", "av1"],
+      why: "El 4K Max sí decodifica AV1 por hardware, además de H.264 y HEVC." },
+    { id: "ccgtv", name: "Chromecast con Google TV (4K)", res: ["1080", "2160"], src: ORIG, codec: ["x264", "x265"],
+      why: "Lee HEVC (también 10 bits y HDR). El modelo 4K no decodifica AV1 por hardware (el HD sí)." },
+    { id: "shield", name: "Nvidia Shield", res: ["1080", "2160"], src: [...ORIG, "remux"], codec: ["x264", "x265"],
+      why: "Reproduce prácticamente todo, incluidos Remux 4K con HDR, pero no tiene AV1 por hardware." },
+    { id: "kodi", name: "Kodi en PC o mini PC", res: ["1080", "2160"], src: [...ORIG, "remux"], codec: ["x264", "x265", "av1"],
+      why: "Kodi lee todos los códecs. AV1 va fluido si la gráfica del PC lo decodifica por hardware (las de los últimos años, sí; las antiguas, no)." },
+    { id: "mobile", name: "Móvil o tablet", res: ["720", "1080"], src: ["webdl", "webrip"], codec: ["x264", "x265"],
+      why: "En pantalla pequeña sobra con 720p o 1080p, y los archivos ocupan menos." },
+    { id: "nohw", name: "NAS sin conversión por hardware", res: ["720", "1080"], src: ORIG, codec: ["x264"],
+      why: "Si tu Plex no puede convertir por hardware (sin Plex Pass, sin acceso a la gráfica o NAS ARM), H.264 es lo que menos le cuesta si alguna vez hay que convertir." },
+    { id: "space", name: "Ahorrar espacio", res: ["720", "1080"], src: ["webdl", "webrip"], codec: ["x265"],
+      why: "HEVC ocupa casi la mitad que H.264 con calidad parecida." },
+    { id: "balanced", name: "Equilibrado", res: ["1080"], src: ["webdl"], codec: ["x264", "x265"],
+      why: "1080p directo de la plataforma (WEB-DL), sin recompresiones: buena calidad y tamaño razonable." },
+    { id: "max", name: "Máxima calidad", res: ["2160"], src: ["remux", "bdrip", "webdl"], codec: ["x265"],
+      why: "4K de la mejor fuente. Asegúrate de que tu reproductor lo lee directamente: el NAS no suele poder convertir Remux 4K." },
+  ];
   (async () => {
     const box = $("qpref");
     if (!box) return;
     const inputs = [...box.querySelectorAll("input[data-q]")];
-    const show = (pref) => { for (const i of inputs) i.checked = !!pref?.[i.dataset.q]?.includes(i.value); };
-    const save = () => {
+    const sel = $("qprefPreset"), why = $("qprefWhy");
+    sel.append(new Option("Ninguno", "none"), new Option("Personalizado", "custom"));
+    for (const p of QPRESETS) sel.append(new Option(p.name, p.id));
+    const read = () => {
       const pref = { res: [], src: [], codec: [] };
       for (const i of inputs) if (i.checked) pref[i.dataset.q].push(i.value);
-      return api.storage.local.set({ qualityPref: pref });
+      return pref;
     };
-    const { qualityPref } = await api.storage.local.get("qualityPref");
+    const same = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
+    const fits = (p, pref) => p && same(p.res, pref.res) && same(p.src, pref.src) && same(p.codec, pref.codec);
+    // Varios presets coinciden (Smart TV, Fire TV, Chromecast…): se recuerda cuál elegiste
+    let chosen = null;
+    const syncPreset = () => {
+      const pref = read();
+      const empty = !pref.res.length && !pref.src.length && !pref.codec.length;
+      const hit = fits(QPRESETS.find((p) => p.id === chosen), pref) ? QPRESETS.find((p) => p.id === chosen) : null;
+      sel.value = empty ? "none" : hit ? hit.id : "custom";
+      sel.querySelector('option[value="custom"]').hidden = sel.value !== "custom";
+      why.textContent = hit ? hit.why : empty ? "Elige un preset o marca las casillas." : "Combinación a tu medida.";
+    };
+    const show = (pref) => { for (const i of inputs) i.checked = !!pref?.[i.dataset.q]?.includes(i.value); syncPreset(); };
+    const save = () => { syncPreset(); return api.storage.local.set({ qualityPref: read(), qualityPreset: sel.value }); };
+    const { qualityPref, qualityPreset } = await api.storage.local.get(["qualityPref", "qualityPreset"]);
+    // sin preset guardado (versiones anteriores): el primero que encaje
+    chosen = qualityPreset || QPRESETS.find((p) => qualityPref && fits(p, qualityPref))?.id || null;
     show(qualityPref);
     inputs.forEach((i) => i.addEventListener("change", save));
-    $("qprefReco").addEventListener("click", () => { show({ res: ["1080"], src: ["webdl", "webrip", "bdrip"], codec: ["x264", "x265"] }); save(); });
-    $("qprefClear").addEventListener("click", () => { show(null); save(); });
+    sel.addEventListener("change", () => {
+      if (sel.value === "custom") return;
+      chosen = sel.value;
+      show(QPRESETS.find((p) => p.id === sel.value) || null);
+      save();
+    });
+    $("qprefClear").addEventListener("click", () => { chosen = null; show(null); save(); });
   })();
 
   // Bibliotecas por defecto para lo que aún no está en Plex / Jellyfin
