@@ -621,7 +621,7 @@
 
   // ---------------------------------------------------------------- descarga remota
   // aMule en Docker, en un NAS o en otro ordenador por su API web (aMule 3.1+),
-  // aMuTorrent o Rucio: se manda desde el segundo plano, todos de golpe.
+  // aMuTorrent, Rucio o Mularr: se manda desde el segundo plano, todos de golpe.
   let amOn = false;
   const amDone = new Set();
   async function sendToAmule(g, btn, kind) {
@@ -637,8 +637,11 @@
       const who = r?.target || "la descarga remota";
       if (!r?.ok) { toast(`${who}: ` + (r?.error || "no se pudo enviar"), true); return; }
       if (!r.count) { toast(`${who} no ha añadido nada: ` + (r.error || "los enlaces ya estaban en la lista"), true); return; }
-      toast(`🐳 ${r.count === 1 ? "Enviado 1 enlace" : `Enviados ${r.count} enlaces`} a ${who}` +
-        (r.failed ? ` (${r.failed} ya estaban en la lista o no son válidos)` : ""));
+      // Mularr distingue los que ya estaban de los que aMule ha rechazado
+      const extra = r.dup !== undefined
+        ? [r.dup ? `${r.dup} ya estaba${r.dup > 1 ? "n" : ""} en la lista` : "", r.failed ? `${r.failed} rechazado${r.failed > 1 ? "s" : ""} por aMule` : ""].filter(Boolean).join(", ")
+        : r.failed ? `${r.failed} ya estaban en la lista o no son válidos` : "";
+      toast(`🐳 ${r.count === 1 ? "Enviado 1 enlace" : `Enviados ${r.count} enlaces`} a ${who}` + (extra ? ` (${extra})` : ""), !!r.failed);
       if (btn.classList.contains("hc-copy-btn")) { btn.textContent = "✔"; setTimeout(() => (btn.textContent = "🐳"), 1500); }
     } catch (e) {
       toast("Error al enviar a la descarga remota: " + e.message, true);
@@ -655,7 +658,7 @@
     const buttons = [];
     if (hasChecks) buttons.push(makeSiteButton("Seleccionados", "Enviar los capítulos marcados a la descarga remota", (b) => sendToAmule(g, b, "sel")));
     buttons.push(g.count === 1
-      ? makeSiteButton("🐳 Enviar", "Enviar a la descarga remota (aMule, aMuTorrent o Rucio)", (b) => sendToAmule(g, b, "all"))
+      ? makeSiteButton("🐳 Enviar", "Enviar a la descarga remota (aMule, aMuTorrent, Rucio o Mularr)", (b) => sendToAmule(g, b, "all"))
       : makeSiteButton("Todos", "Enviar todos los enlaces de esta versión a la descarga remota", (b) => sendToAmule(g, b, "all")));
     buttons.forEach((b) => { b.classList.add("hc-amule"); b.addEventListener("pointerenter", warm); });
     ui.last.after(...buttons.flatMap((b) => [document.createTextNode(" "), b]));

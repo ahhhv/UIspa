@@ -32,8 +32,8 @@ Extensión para **Chrome**, **Firefox** y **Safari** (experimental) que da a [Hi
 - Se pueden ocultar en los ajustes (**Descargas → En este ordenador**).
 
 **Descarga remota (opcional)**
-- Para aMule en Docker, en un NAS o en otro ordenador, aMuTorrent o Rucio: fila 🐳 con «Seleccionados» / «Todos» en cada versión. Se mandan todos de golpe, desde cualquier navegador.
-- Se conecta directamente con **aMule 3.1 o posterior** (su interfaz web nueva, amuleapi), a través de **aMuTorrent** o con **Rucio**. Puedes elegir la categoría.
+- Para aMule en Docker, en un NAS o en otro ordenador, aMuTorrent, Rucio o Mularr: fila 🐳 con «Seleccionados» / «Todos» en cada versión. Se mandan todos de golpe, desde cualquier navegador.
+- Se conecta directamente con **aMule 3.1 o posterior** (su interfaz web nueva, amuleapi), a través de **aMuTorrent** o de **Mularr**, o con **Rucio**. Puedes elegir la categoría.
 
 **Enviar a Synology Download Station (opcional)**
 - «Seleccionados» / «Todos» en cada versión.
@@ -161,6 +161,7 @@ Para un programa de descargas que no está en el ordenador donde navegas, o que 
   - Con aMule 2.3.x (la interfaz web antigua, amuleweb) no funciona: actualízalo o usa aMuTorrent.
 - **aMuTorrent:** dirección `http://IP:4000` y, si tiene usuarios activados, la **clave de API** de tu usuario (en aMuTorrent, **Ajustes → Gestión de usuarios**).
 - **Rucio:** dirección de su panel, por defecto `http://127.0.0.1:3003`. Desde otro equipo o en Docker, su API tiene que escuchar en la red (`RUCIOD_API_LISTEN=0.0.0.0:3003`). Rucio no tiene contraseña propia; si está detrás de un proxy con usuario y contraseña, ponlos.
+- **Mularr:** dirección de Mularr, por defecto `http://IP-de-la-máquina:8940`, y su clave de API (la variable `API_KEY` de su configuración). Como Mularr da por bueno cualquier enlace aunque aMule lo rechace, UIspa comprueba después en su lista de descargas que ha entrado de verdad.
 
 Pulsa **Probar conexión** para cargar las categorías, elige una si quieres y pulsa **Guardar**. Recarga Hispashare: aparecerá la fila 🐳 **Descarga remota**.
 
@@ -178,7 +179,7 @@ En Firefox, para que se sincronicen entre ordenadores tienes que tener activada 
 ## Privacidad
 
 - UIspa no recoge ni envía datos a ningún servidor propio ni de terceros. En Firefox lo declara así en su instalación (`data_collection_permissions: none`).
-- Solo se comunica con Hispashare, para obtener los enlaces que ya ofrece la web, con tu servidor Plex o Jellyfin, tu NAS Synology y tu descarga remota (aMule, aMuTorrent o Rucio) si los configuras.
+- Solo se comunica con Hispashare, para obtener los enlaces que ya ofrece la web, con tu servidor Plex o Jellyfin, tu NAS Synology y tu descarga remota (aMule, aMuTorrent, Rucio o Mularr) si los configuras.
 - Los favoritos se guardan donde elijas: en el almacenamiento sincronizado del navegador (viajan con tu cuenta de Firefox o de Google) o solo en tu navegador. Nunca van a ningún servidor de UIspa.
 - Las direcciones, credenciales y contraseñas se guardan únicamente en tu navegador; la contraseña del NAS viaja en el cuerpo de la petición, nunca en la dirección. Las consultas salen de la extensión, no de la página, así que la web nunca las ve. Del servidor solo se usan el tamaño y la resolución de los archivos, nunca sus rutas.
 
@@ -213,7 +214,7 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 | `background.js` | Segundo plano: atajos y menús |
 | `media-bg.js`, `plex-bg.js`, `jellyfin-bg.js` | Consultas al servidor multimedia |
 | `synology-bg.js` | Envío de enlaces a Download Station y exploración de carpetas |
-| `amule-bg.js` | Envío de enlaces a la descarga remota (aMule, aMuTorrent o Rucio) |
+| `amule-bg.js` | Envío de enlaces a la descarga remota (aMule, aMuTorrent, Rucio o Mularr) |
 | `favorites.js` | Favoritos: estrellas, fila de la portada y aviso de novedades |
 | `setup-bg.js` | Abre el asistente de configuración al instalar |
 | `offscreen.html`, `offscreen.js` | Solo Chrome: copia al portapapeles desde segundo plano |

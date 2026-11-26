@@ -29,7 +29,7 @@
     <p>UIspa rediseña Hispashare y te deja copiar los enlaces ed2k con un clic. Además puede:</p>
     <ul>
       <li>decirte qué capítulos o películas ya tienes en <b>Plex</b> o <b>Jellyfin</b>,</li>
-      <li>mandar descargas a tu <b>NAS Synology</b> (Download Station) o a una <b>descarga remota</b> (aMule en Docker, NAS u otro ordenador, aMuTorrent o Rucio),</li>
+      <li>mandar descargas a tu <b>NAS Synology</b> (Download Station) o a una <b>descarga remota</b> (aMule en Docker, NAS u otro ordenador, aMuTorrent, Rucio o Mularr),</li>
       <li>guardar tus <b>favoritos</b> y avisarte de sus novedades.</li>
     </ul>
     <p class="muted">Todo es opcional: en cada paso puedes pulsar <b>Omitir</b>. Puedes volver a abrir este asistente cuando quieras desde los ajustes.</p>
@@ -230,8 +230,8 @@
 
 
   <section id="sec-amule">
-    <h2>Descarga remota (aMule, aMuTorrent o Rucio)</h2>
-    <p class="muted">Para un programa de descargas que UIspa no puede abrir directamente: aMule en Docker, en un NAS o en otro equipo de casa, aMuTorrent o Rucio. Si lo configuras, en cada versión aparece la fila 🐳 <b>Descarga remota</b> para mandarle los enlaces, todos de un clic. Si usas eMule o aMule en este mismo ordenador no hace falta: usa los botones ▶ eMule / aMule.</p>
+    <h2>Descarga remota (aMule, aMuTorrent, Rucio o Mularr)</h2>
+    <p class="muted">Para un programa de descargas que UIspa no puede abrir directamente: aMule en Docker, en un NAS o en otro equipo de casa, aMuTorrent, Rucio o Mularr. Si lo configuras, en cada versión aparece la fila 🐳 <b>Descarga remota</b> para mandarle los enlaces, todos de un clic. Si usas eMule o aMule en este mismo ordenador no hace falta: usa los botones ▶ eMule / aMule.</p>
 
     <label>Conectar con</label>
     <div class="choice" role="radiogroup" aria-label="Cómo conectar con aMule">
@@ -241,6 +241,8 @@
         <span><b>aMuTorrent</b><small>Si gestionas aMule con aMuTorrent. Sirve también con versiones antiguas de aMule.</small></span></label>
       <label class="choice-opt"><input type="radio" name="amType" value="rucio">
         <span><b>Rucio</b><small>Cliente P2P con acceso a la red Kad de eMule, en este ordenador o en otro. Por su API (puerto 3003).</small></span></label>
+      <label class="choice-opt"><input type="radio" name="amType" value="mularr">
+        <span><b>Mularr</b><small>Si gestionas aMule con Mularr (interfaz web con Sonarr/Radarr). Por su API (puerto 8940), con su clave de API.</small></span></label>
     </div>
 
     <label for="amUrl">Dirección</label>
@@ -285,6 +287,12 @@
         <li><b>Dirección:</b> la de su panel web, por defecto <code>http://127.0.0.1:3003</code> si está en este ordenador. Desde otro equipo o en Docker, su API tiene que escuchar en la red: <code>RUCIOD_API_LISTEN=0.0.0.0:3003</code>.</li>
         <li>Rucio no tiene contraseña propia. Si lo has puesto detrás de un proxy con usuario y contraseña (lo recomendable si lo abres a la red), escríbelos; si no, déjalos vacíos.</li>
         <li>Para los enlaces ed2k hace falta su conexión a la red Kad de eMule (viene en las versiones publicadas).</li>
+      </ol>
+      <p class="muted small"><b>Mularr</b></p>
+      <ol>
+        <li><b>Dirección:</b> la de Mularr, por defecto <code>http://IP-de-la-máquina:8940</code>.</li>
+        <li><b>Clave de API:</b> la variable <code>API_KEY</code> de su configuración (docker-compose o <code>.env</code>). Si no la tienes, añádela y reinicia Mularr.</li>
+        <li>Mularr da por bueno cualquier enlace aunque aMule lo rechace; UIspa comprueba después en su lista de descargas que ha entrado de verdad.</li>
       </ol>
     </details>
     <p class="muted small">La contraseña o clave se guarda solo en este navegador y únicamente se envía a esa dirección.</p>
