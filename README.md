@@ -227,6 +227,9 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 
 ## Novedades
 
+**4.6.0**
+- **Mularr** en la descarga remota: con su clave de API y sus categorías. Como Mularr da por bueno cualquier enlace aunque aMule lo rechace, UIspa comprueba después que cada descarga ha entrado de verdad y avisa de cuántas ya estaban y cuántas ha rechazado aMule.
+
 **4.5.1**
 - **Presets de calidad preferida:** Apple TV, Smart TV, Fire TV Stick, Fire TV Stick 4K Max, Chromecast con Google TV, Nvidia Shield, Kodi, móvil, NAS sin conversión por hardware, ahorrar espacio, equilibrado y máxima calidad. Cada uno explica por qué; si retocas las casillas pasa a «Personalizado».
 
