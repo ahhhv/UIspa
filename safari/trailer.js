@@ -81,9 +81,15 @@
       frame.allowFullscreen = true;
       frame.title = "Tráiler";
       // se pide al reproductor que avise de los errores
-      frame.addEventListener("load", () => {
-        const hello = () => frame?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: "uispa", channel: "widget" }), YT);
-        hello(); setTimeout(hello, 400);
+      // (solo a este reproductor y cuando ya tiene cargado YouTube: si ya se ha
+      // cambiado por otro, o aún está en blanco, Chrome da error)
+      const f = frame;
+      f.addEventListener("load", () => {
+        const hello = () => {
+          if (f !== frame || !f.isConnected) return;
+          try { f.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: "uispa", channel: "widget" }), YT); } catch (_) {}
+        };
+        hello(); setTimeout(hello, 400); setTimeout(hello, 1500);
       });
       box.replaceChildren(frame);
       const langTxt = t.lang === "es" ? "español" : "versión original";
