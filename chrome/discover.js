@@ -259,9 +259,13 @@
       let tries = 0;
       // se buscan cartas hasta tener unas cuantas que se parezcan a algo tuyo;
       // las que no se parecen a nada se quedan para el final
+      // (sin biblioteca no hay parecidas: basta con tener unas cuantas en cola, y
+      // con biblioteca se buscan como mucho 4 páginas más para encontrarlas)
       const good = () => queue.filter((x) => x.sim.length).length;
+      const wantGood = () => !!taste?.lib?.length && good() < 6 && tries < 4;
       let added = 0;
-      while ((good() < 6 || queue.length < 8) && tries++ < 12) {
+      while (tries < 12 && (queue.length < 8 || wantGood())) {
+        tries++;
         const src = pickSource();
         if (!src) break;
         for (const d of await loadFrom(src)) {

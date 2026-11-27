@@ -243,6 +243,9 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 
 ## Novedades
 
+**4.7.1**
+- ¿Qué veo esta noche? sin Plex ni Jellyfin: ya no lee una docena de páginas de Hispashare de golpe cada vez que se le acaban las cartas; ahora pide solo las que hacen falta.
+
 **4.7.0**
 - **🎲 ¿Qué veo esta noche?** (botón en la barra de arriba): películas una a una, tipo Tinder, según lo que tienes y has visto en Plex o Jellyfin. Cada carta dice a qué películas tuyas se parece y nunca te propone lo que ya tienes. ← paso, ↑ favorito, → lo quiero (descargarla eligiendo la calidad, guardarla en «Para luego» o abrir la ficha) y ↶ Atrás para volver tantas cartas como quieras. Filtros de género, nota y año. Las descartadas y la lista «Para luego» se ven en los ajustes.
 - **▶ Ver tráiler** en cada ficha. Con una clave gratuita de TMDB (opcional), cabecera con imagen horizontal de fondo y el tráiler sin salir de la página, en español si lo hay; si YouTube bloquea uno en España, salta solo al siguiente. Sin clave, busca el tráiler en YouTube.
