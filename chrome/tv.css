@@ -1,0 +1,144 @@
+/* UIspa TV: Hispashare como una tele antigua (tv.js) */
+html.uispa-tv-on { overflow: hidden !important; background: #000 !important; }
+html.uispa-tv-on body { visibility: hidden !important; }
+
+#uispa-tv { position: fixed; inset: 0; z-index: 2147483600; background: #0b0b0b; overflow: hidden; cursor: none;
+  font-family: Inter, "Segoe UI", "DejaVu Sans", Roboto, sans-serif; color: #f3f1ea; visibility: visible;
+  -webkit-font-smoothing: antialiased; line-height: 1.3; text-align: left; }
+#uispa-tv *, #uispa-tv *::before, #uispa-tv *::after { box-sizing: border-box; margin: 0; padding: 0; }
+#uispa-tv .utv-stage { position: absolute; left: 50%; top: 50%; width: 1280px; height: 720px;
+  transform: translate(-50%, -50%) scale(var(--utv-s, 1)); transform-origin: center; }
+#uispa-tv .utv-bezel { position: absolute; inset: -400px; background: radial-gradient(ellipse at 50% 45%, #2a2723 0, #141210 55%, #0b0a09 100%); }
+#uispa-tv .utv-screen { position: absolute; left: 34px; top: 26px; right: 34px; bottom: 26px; border-radius: 46px / 40px; overflow: hidden; background: #05070a;
+  box-shadow: inset 0 0 120px rgba(0,0,0,.95), 0 0 0 6px #0c0b0a, 0 0 40px rgba(0,0,0,.8); }
+#uispa-tv .utv-content { position: absolute; inset: 0; filter: saturate(1.15) contrast(1.05); }
+#uispa-tv .utv-scan { position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0, rgba(0,0,0,.28) 1px, transparent 2px, transparent 4px); mix-blend-mode: multiply; }
+#uispa-tv .utv-rgb { position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  background: repeating-linear-gradient(90deg, rgba(255,0,0,.05) 0 1px, rgba(0,255,0,.04) 1px 2px, rgba(0,80,255,.05) 2px 3px); }
+#uispa-tv .utv-vig { position: absolute; inset: 0; pointer-events: none; z-index: 5; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.75) 100%); }
+#uispa-tv .utv-glare { position: absolute; inset: 0; pointer-events: none; z-index: 5; background: radial-gradient(ellipse at 30% 18%, rgba(255,255,255,.09), transparent 45%); }
+#uispa-tv .utv-flicker { position: absolute; inset: 0; pointer-events: none; z-index: 5; background: rgba(255,255,255,.018); animation: utv-flicker .12s steps(2) infinite; }
+@keyframes utv-flicker { 50% { opacity: 0; } }
+#uispa-tv .utv-led { position: absolute; right: 70px; bottom: 9px; width: 8px; height: 8px; border-radius: 50%; background: #ff3b30; box-shadow: 0 0 8px #ff3b30; }
+#uispa-tv .utv-brand { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); font: 700 11px/1 "DejaVu Sans", sans-serif; letter-spacing: 4px; color: #6b655c; white-space: nowrap; }
+
+/* encendido / apagado */
+#uispa-tv.utv-on .utv-screen { animation: utv-poweron .55s ease-out; }
+@keyframes utv-poweron {
+  0% { transform: scale(1, .004); filter: brightness(6); }
+  45% { transform: scale(1, .004); filter: brightness(6); }
+  70% { transform: scale(1, 1.05); filter: brightness(2); }
+  100% { transform: none; filter: none; }
+}
+#uispa-tv.utv-off .utv-screen { animation: utv-poweroff .45s ease-in forwards; }
+@keyframes utv-poweroff {
+  0% { transform: none; filter: none; }
+  50% { transform: scale(1, .004); filter: brightness(5); }
+  80% { transform: scale(.02, .004); filter: brightness(8); }
+  100% { transform: scale(0, 0); filter: brightness(8); }
+}
+
+/* nieve al cambiar de canal */
+#uispa-tv .utv-noise { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 4; display: none; image-rendering: pixelated; }
+#uispa-tv.utv-static .utv-noise { display: block; }
+#uispa-tv .utv-static-num { position: absolute; left: 0; right: 0; top: 230px; text-align: center; z-index: 4; display: none;
+  font: 700 120px/1 "DejaVu Sans Mono", Consolas, monospace; color: #39ff6a; text-shadow: 0 0 16px rgba(57,255,106,.9), 4px 4px 0 #062; }
+#uispa-tv .utv-static-num small { display: block; font-size: 34px; letter-spacing: 8px; margin-top: 8px; }
+#uispa-tv.utv-static .utv-static-num { display: block; }
+#uispa-tv .utv-roll { animation: utv-roll .22s ease-out; }
+@keyframes utv-roll { 0% { transform: translateY(-14px); filter: brightness(1.8) blur(1px); } 100% { transform: none; filter: none; } }
+
+/* OSD y ayuda */
+#uispa-tv .utv-osd { position: absolute; top: 34px; right: 56px; z-index: 3; text-align: right;
+  font: 700 40px/1 "DejaVu Sans Mono", Consolas, monospace; color: #39ff6a; text-shadow: 0 0 8px rgba(57,255,106,.8), 2px 2px 0 #062; }
+#uispa-tv .utv-osd small { display: block; font-size: 18px; letter-spacing: 2px; margin-top: 6px; }
+#uispa-tv .utv-hint { position: absolute; left: 40px; right: 40px; bottom: 24px; z-index: 3; text-align: center; white-space: nowrap; overflow: hidden;
+  font: 15px "DejaVu Sans Mono", Consolas, monospace; color: #cfe; opacity: .85; letter-spacing: .5px; }
+#uispa-tv .utv-hint b { color: #39ff6a; font-weight: 700; }
+#uispa-tv .utv-msg { position: absolute; left: 50%; bottom: 62px; transform: translateX(-50%); z-index: 4; padding: 8px 18px; border-radius: 8px;
+  background: rgba(0,0,0,.75); font: 700 17px "DejaVu Sans Mono", monospace; color: #39ff6a; white-space: nowrap; opacity: 0; transition: opacity .2s; }
+#uispa-tv .utv-msg.utv-show { opacity: 1; }
+
+/* zapping: un título a pantalla completa */
+#uispa-tv .utv-bg { position: absolute; inset: -40px; background: #1d2a3a center / cover no-repeat; filter: blur(30px) brightness(.45) saturate(1.3); }
+#uispa-tv .utv-poster { position: absolute; left: 110px; top: 118px; width: 300px; height: 450px; border-radius: 10px; overflow: hidden;
+  background: linear-gradient(160deg, #3a4656, #1b2230); box-shadow: 0 20px 50px rgba(0,0,0,.7); }
+#uispa-tv .utv-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#uispa-tv .utv-poster .utv-nopic { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; text-align: center;
+  font: 800 30px/1.1 Georgia, "DejaVu Serif", serif; color: #fff; }
+#uispa-tv .utv-info { position: absolute; left: 460px; top: 136px; right: 100px; }
+#uispa-tv .utv-tag { font: 700 15px "DejaVu Sans Mono", Consolas, monospace; color: #ffd24a; letter-spacing: 3px; text-transform: uppercase; }
+#uispa-tv .utv-h1 { font: 800 56px/1.05 Georgia, "DejaVu Serif", serif; margin: 10px 0 16px; color: #f3f1ea; text-shadow: 0 3px 12px rgba(0,0,0,.6);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#uispa-tv .utv-h1.utv-long { font-size: 42px; }
+#uispa-tv .utv-meta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 20px; margin-bottom: 18px; }
+#uispa-tv .utv-meta .utv-r { color: #ffd24a; font-weight: 700; }
+#uispa-tv .utv-pill { padding: 4px 12px; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; font-size: 15px; }
+#uispa-tv .utv-syn { font-size: 19px; line-height: 1.5; color: #e6e2d6; max-width: 660px;
+  display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+#uispa-tv .utv-badges { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+#uispa-tv .utv-badge { display: inline-block; padding: 8px 16px; border-radius: 999px; font-weight: 800; font-size: 17px; background: rgba(255,255,255,.12); color: #f3f1ea; }
+#uispa-tv .utv-badge.utv-pref { background: #ffd24a; color: #1a1300; }
+#uispa-tv .utv-badge.utv-miss { background: #ff9a3c; color: #1d0d00; }
+#uispa-tv .utv-badge.utv-favb { background: #5aa8ff; color: #04162b; }
+#uispa-tv .utv-badge.utv-news { background: #45d96b; color: #032; }
+#uispa-tv .utv-dots { position: absolute; right: 58px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; }
+#uispa-tv .utv-dots i { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.3); }
+#uispa-tv .utv-dots i.utv-on { background: #39ff6a; box-shadow: 0 0 8px #39ff6a; }
+
+/* sin señal / sintonizando */
+#uispa-tv .utv-nosig-wrap { position: absolute; inset: 0; }
+#uispa-tv .utv-bars { position: absolute; inset: 0; display: flex; }
+#uispa-tv .utv-bars i { flex: 1; }
+#uispa-tv .utv-nosig { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 26px 40px; max-width: 900px; text-align: center;
+  background: rgba(0,0,0,.82); border: 3px solid #f3f1ea; font: 700 22px/1.5 "DejaVu Sans Mono", Consolas, monospace; color: #f3f1ea; }
+#uispa-tv .utv-nosig b { display: block; font-size: 44px; letter-spacing: 6px; color: #39ff6a; margin-bottom: 8px; }
+#uispa-tv .utv-tuning { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  font: 700 30px "DejaVu Sans Mono", Consolas, monospace; color: #39ff6a; letter-spacing: 6px; text-shadow: 0 0 10px rgba(57,255,106,.8); }
+#uispa-tv .utv-tuning small { font-size: 16px; letter-spacing: 2px; color: #cfe; text-shadow: none; }
+#uispa-tv .utv-tuning .utv-bar { width: 420px; height: 12px; border: 2px solid #39ff6a; }
+#uispa-tv .utv-tuning .utv-bar i { display: block; height: 100%; background: #39ff6a; width: 0; transition: width .3s; }
+
+/* ficha */
+#uispa-tv .utv-ficha .utv-bg { filter: blur(40px) brightness(.28) saturate(1.2); }
+#uispa-tv .utv-head { position: absolute; left: 80px; top: 56px; right: 260px; display: flex; gap: 22px; align-items: center; }
+#uispa-tv .utv-mini { width: 70px; height: 105px; border-radius: 6px; overflow: hidden; flex: none; background: #333; }
+#uispa-tv .utv-mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#uispa-tv .utv-head h2 { font: 800 34px/1.1 Georgia, "DejaVu Serif", serif; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#uispa-tv .utv-head p { color: #cfc9bb; font-size: 16px; margin-top: 6px; }
+#uispa-tv .utv-head p .utv-have { color: #8fb; }
+#uispa-tv .utv-tabs { position: absolute; left: 80px; top: 182px; right: 80px; display: flex; gap: 10px; overflow: hidden; }
+#uispa-tv .utv-tab { padding: 7px 18px; border-radius: 999px; background: rgba(255,255,255,.08); color: #ddd; font-size: 16px; font-weight: 600; white-space: nowrap; flex: none; }
+#uispa-tv .utv-tab.utv-sel { background: #ffd24a; color: #1a1300; }
+#uispa-tv .utv-tab.utv-dot::after { content: " •"; color: #ffb35c; }
+#uispa-tv .utv-vers { position: absolute; left: 80px; top: 236px; width: 410px; bottom: 150px; overflow: hidden; display: flex; flex-direction: column; gap: 10px; padding: 6px; }
+#uispa-tv .utv-ver { padding: 11px 16px; border-radius: 12px; background: rgba(255,255,255,.06); color: #e8e4da; font-size: 16px; border: 1px solid rgba(255,255,255,.08); flex: none; }
+#uispa-tv .utv-ver b { font-weight: 700; }
+#uispa-tv .utv-ver small { display: block; color: #a9a397; font-size: 13px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#uispa-tv .utv-ver.utv-sel { background: rgba(255,255,255,.14); }
+#uispa-tv .utv-ver.utv-pref { border-color: #ffd24a; box-shadow: 0 0 0 1px #ffd24a, 0 8px 24px -10px #ffd24a; background: rgba(255,210,74,.10); }
+#uispa-tv .utv-ver.utv-pref b { color: #ffd24a; }
+#uispa-tv .utv-eps { position: absolute; left: 520px; top: 236px; right: 80px; bottom: 150px; overflow: hidden; color: #e8e4da; font-size: 16px; padding: 6px; }
+#uispa-tv .utv-ep { display: flex; justify-content: space-between; gap: 14px; padding: 8px 14px; border-bottom: 1px solid rgba(255,255,255,.07); border-radius: 6px; }
+#uispa-tv .utv-ep > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+#uispa-tv .utv-ep .utv-st { flex: none; color: #a9a397; font-size: 14px; }
+#uispa-tv .utv-ep .utv-st.utv-yes { color: #8fb; }
+#uispa-tv .utv-ep .utv-st.utv-no { color: #ffb35c; }
+#uispa-tv .utv-chk { display: inline-block; width: 16px; height: 16px; border: 2px solid #aaa; border-radius: 4px; margin-right: 10px; vertical-align: -3px; }
+#uispa-tv .utv-chk.utv-x { background: #39ff6a; border-color: #39ff6a; }
+#uispa-tv .utv-empty { color: #a9a397; padding: 10px 14px; }
+#uispa-tv .utv-acts { position: absolute; left: 80px; right: 80px; bottom: 70px; display: flex; gap: 14px; flex-wrap: nowrap; }
+#uispa-tv .utv-btn { padding: 12px 20px; border-radius: 12px; font-weight: 800; font-size: 16px; color: #111; white-space: nowrap; background: #ddd; }
+#uispa-tv .utv-btn.utv-g { background: #45d96b; } #uispa-tv .utv-btn.utv-red { background: #ff5a4f; }
+#uispa-tv .utv-btn.utv-y { background: #ffd24a; } #uispa-tv .utv-btn.utv-b { background: #5aa8ff; }
+#uispa-tv .utv-btn.utv-p { background: #c79bff; }
+#uispa-tv .utv-btn.utv-busy { opacity: .6; }
+#uispa-tv .utv-focus { outline: 4px solid #39ff6a; outline-offset: 3px; box-shadow: 0 0 18px rgba(57,255,106,.6) !important; }
+#uispa-tv .utv-ep.utv-focus { outline-offset: 0; background: rgba(57,255,106,.12); }
+
+/* recuadros de UIspa por encima de la tele */
+html.uispa-tv-on .hc-nas-pop { position: fixed !important; left: 50% !important; top: 50% !important; z-index: 2147483647 !important;
+  transform: translate(-50%, -50%) scale(1.3); max-height: 72vh; overflow: auto; visibility: visible !important; }
+html.uispa-tv-on .hc-nas-pop :focus { outline: 3px solid #39ff6a !important; outline-offset: 2px; }
+html.uispa-tv-on #hc-toast { z-index: 2147483647 !important; font-size: 20px !important; padding: 14px 24px !important; visibility: visible !important; }

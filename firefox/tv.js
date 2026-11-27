@@ -1,323 +1,824 @@
-// UIspa · Modo tele
-// Para usar Hispashare en la tele desde un portátil o mini PC: todo se maneja con
-// flechas + Intro + Atrás (teclado, mando de la tele por HDMI-CEC o mando de consola).
-//   · Se activa con la tecla T, desde el menú ◐ o al poner el navegador en pantalla completa.
-//   · Las flechas mueven el foco al elemento más cercano en esa dirección.
-//   · Atrás vuelve a la pantalla anterior; en la portada sale del modo tele.
+// UIspa TV: Hispashare como una tele antigua, a pantalla completa.
+//   · Canales: 1 Lo que te falta · 2 Novedades · 3 Películas · 4 Series · 5 Documentales · 6 Favoritos
+//   · ◀▶ (o CH+/CH−) cambian de canal; ▲▼ hacen zapping entre títulos; 1-6 van a un canal
+//   · OK abre la ficha a pantalla completa: versiones, capítulos (en tu Plex / te faltan)
+//     y botones de colores: NAS (verde), eMule (rojo), Copiar (amarillo), Favorito (azul)
+//   · Se enciende con la tecla T, desde el menú ◐ o poniendo el navegador en pantalla completa
+//   · Teclado, mando de la tele (HDMI-CEC) o mando de consola. Sonido desactivado (tecla S)
 (() => {
+  "use strict";
   const html = document.documentElement;
-  if (!html.classList.contains("hcm")) return; // sin el rediseño no hay modo tele
+  if (!html.classList.contains("hcm") || !document.getElementById("hcm-root")) return; // necesita el rediseño
   const ext = typeof browser !== "undefined" ? browser : (typeof chrome !== "undefined" ? chrome : null);
   const me = ext?.runtime?.id || "uispa";
   if (html.dataset.uispaOwner && html.dataset.uispaOwner !== me) return;
+  if (window.__uispaTv) return;
+  window.__uispaTv = true;
+  const U = globalThis.__uispa || {};
+  if (!U.rowData || !U.listRows) return;
 
-  const KEY = "uispa-tv";          // "on" (a mano) o "auto" (por pantalla completa)
-  const NOFS = "uispa-tv-nofs";    // lo quitaste a mano estando en pantalla completa
+  // ------------------------------------------------------------ utilidades
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const txt = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
+  function h(tag, cls, ...kids) {
+    const el = document.createElement(tag);
+    if (cls) el.className = cls;
+    for (const k of kids.flat(Infinity)) if (k != null && k !== false) el.append(k);
+    return el;
+  }
   const ss = {
-    get: (k) => { try { return sessionStorage.getItem(k); } catch (_) { return null; } },
-    set: (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (_) {} },
+    get(k) { try { return JSON.parse(sessionStorage.getItem(k)); } catch (_) { return null; } },
+    set(k, v) { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, JSON.stringify(v)); } catch (_) {} },
   };
-  const isOn = () => html.classList.contains("hcm-tv");
-  const params = new URLSearchParams(location.search);
-  const isHome = () => location.pathname === "/" && (!params.get("view") || params.get("view") === "list") && !params.get("q");
-  const isTitle = () => params.get("view") === "title";
-  const isList = () => !!document.querySelector(".hcm-grid");
-  const streamingShown = () => !!document.querySelector(".hcm-stream-hero, .hcm-strip-sec");
+  const ls = {
+    get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
+    set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (_) {} },
+  };
+  const abs = (u) => { try { return new URL(u, location.href).href; } catch (_) { return u || ""; } };
+  const titleId = (href) => (String(href || "").match(/[?&]id=(\d+)/) || [])[1] || null;
+  const wait = (ms) => new Promise((ok) => setTimeout(ok, ms));
+  const isTitlePage = () => /[?&]view=title\b/.test(location.search);
+
+  // ------------------------------------------------------------ estado (dura lo que la pestaña)
+  const KEY = "uispa-tv";            // { on: "on" | "auto", ch, pos: {ch: índice}, view: "zap" | "ficha", ficha: url }
+  const NOFS = "uispa-tv-nofs";      // lo apagaste a mano estando en pantalla completa
+  const FEED = "uispa-tv-feed";      // títulos de las novedades ya leídos
+  const MISS = "uispa-tv-miss";      // resultado de «Lo que te falta»
+  let st = ss.get(KEY) || null;
+  const save = () => ss.set(KEY, st);
+
+  const CHANNELS = [
+    { n: 1, id: "miss", name: "LO QUE TE FALTA" },
+    { n: 2, id: "new", name: "NOVEDADES" },
+    { n: 3, id: "movie", name: "PELÍCULAS" },
+    { n: 4, id: "series", name: "SERIES" },
+    { n: 5, id: "doc", name: "DOCUMENTALES" },
+    { n: 6, id: "fav", name: "FAVORITOS" },
+  ];
+  const chan = (n) => CHANNELS.find((c) => c.n === n) || CHANNELS[1];
+
+  // ------------------------------------------------------------ sonido (apagado salvo que lo actives)
+  let soundOn = ls.get("uispa-tv-sound") === "1";
+  let actx = null;
+  function audio() {
+    if (!soundOn) return null;
+    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); } catch (_) { return null; }
+    if (actx.state === "suspended") actx.resume().catch(() => {});
+    return actx;
+  }
+  function hiss(ms = 380, vol = 0.09) {
+    const a = audio();
+    if (!a) return;
+    const len = Math.floor(a.sampleRate * ms / 1000);
+    const buf = a.createBuffer(1, len, a.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const src = a.createBufferSource();
+    const f = a.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 3200; f.Q.value = 0.6;
+    const g = a.createGain(); g.gain.value = vol;
+    src.buffer = buf; src.connect(f).connect(g).connect(a.destination); src.start();
+  }
+  function thunk(up = true) {
+    const a = audio();
+    if (!a) return;
+    const o = a.createOscillator(), g = a.createGain(), t = a.currentTime;
+    o.type = "sine";
+    o.frequency.setValueAtTime(up ? 70 : 140, t);
+    o.frequency.exponentialRampToValueAtTime(up ? 140 : 40, t + 0.25);
+    g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.32);
+    if (up) {   // el pitido agudo de los tubos al encenderse
+      const w = a.createOscillator(), wg = a.createGain();
+      w.frequency.value = 15200; wg.gain.setValueAtTime(0.015, t); wg.gain.exponentialRampToValueAtTime(0.0005, t + 1.2);
+      w.connect(wg).connect(a.destination); w.start(t); w.stop(t + 1.2);
+    }
+    hiss(up ? 250 : 180, 0.05);
+  }
+  const blip = () => { const a = audio(); if (!a) return; const o = a.createOscillator(), g = a.createGain(), t = a.currentTime;
+    o.type = "square"; o.frequency.value = 880; g.gain.setValueAtTime(0.03, t); g.gain.exponentialRampToValueAtTime(0.0005, t + 0.06);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.07); };
+
+  // ------------------------------------------------------------ datos: novedades
+  // Una sola lista (las novedades de la portada, página a página); Películas,
+  // Series y Documentales son esa misma lista filtrada por tipo.
+  const FEED_TTL = 20 * 60e3, MAX_PAGES = 25;
+  let feed = ss.get(FEED);
+  if (!feed || Date.now() - feed.t > FEED_TTL) feed = { t: Date.now(), rows: [], next: "/", pages: 0 };
+  let feedBusy = null;
+  const keepRow = (d) => ({ href: d.href, title: d.title, year: d.year, type: d.type, tag: d.tag, genres: d.genres, rating: d.rating,
+    poster: d.poster ? abs(d.poster) : "", badge: d.badge, last: d.last, synopsis: d.synopsis, quality: d.quality });
+  function loadPage() {
+    if (feedBusy) return feedBusy;
+    if (!feed.next || feed.pages >= MAX_PAGES) return Promise.resolve(false);
+    feedBusy = (async () => {
+      try {
+        const res = await fetch(feed.next, { credentials: "include" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const doc = new DOMParser().parseFromString(await res.text(), "text/html");
+        const rows = U.listRows(doc);
+        const seen = new Set(feed.rows.map((r) => r.href));
+        for (const tr of rows) {
+          try {
+            const d = keepRow(U.rowData(tr));
+            if (!seen.has(d.href)) { seen.add(d.href); feed.rows.push(d); }
+          } catch (_) {}
+        }
+        const pag = $(".PAGINATION", doc);
+        feed.next = rows.length && pag ? U.nextPageUrl(pag, feed.next) : null;
+        feed.pages++;
+        ss.set(FEED, feed);
+        return true;
+      } catch (e) {
+        console.warn("[UIspa TV] novedades:", e.message);
+        return false;
+      } finally { feedBusy = null; }
+    })();
+    return feedBusy;
+  }
+
+  // ------------------------------------------------------------ datos: favoritos
+  let favs = {};
+  let favArea = ext?.storage?.local;
+  async function loadFavs() {
+    if (!ext?.storage) return;
+    try {
+      const { favArea: where } = await ext.storage.local.get("favArea");
+      favArea = where !== "local" && ext.storage.sync ? ext.storage.sync : ext.storage.local;
+      const all = await favArea.get(null);
+      favs = {};
+      for (const [k, v] of Object.entries(all || {})) if (k.startsWith("fav:") && v?.id) favs[v.id] = v;
+    } catch (_) {}
+  }
+  const isFav = (href) => !!favs[titleId(href)];
+  async function toggleFav(d) {
+    const id = titleId(d.href);
+    if (!id || !favArea) return;
+    if (favs[id]) {
+      delete favs[id];
+      await favArea.remove("fav:" + id).catch(() => {});
+      return false;
+    }
+    const u = new URL(d.href, location.href);
+    const f = { id, url: u.pathname + u.search, title: d.title, poster: d.poster ? abs(d.poster) : "", year: d.year || "", type: d.type || "movie",
+      tag: d.tag || null, genres: d.genres || [], rating: d.rating || null, seen: "", sig: "", updated: 0, seenUpdated: 0, checked: 0, news: null, added: Date.now() };
+    favs[id] = f;
+    await favArea.set({ ["fav:" + id]: f }).catch(() => {});
+    return true;
+  }
+  ext?.storage?.onChanged?.addListener((ch) => {
+    if (Object.keys(ch).some((k) => k.startsWith("fav:") || k === "favArea")) loadFavs().then(() => { if (cur()?.id === "fav") render(); });
+    if (ch.qualityPref) { qpref = ch.qualityPref.newValue; render(); }
+  });
+  let qpref = null;
+  ext?.storage?.local.get("qualityPref").then((r) => { qpref = r?.qualityPref || null; }, () => {});
+  const prefOk = (q) => !!(q && qpref && U.qualityOf && U.matchesPref?.(U.qualityOf(q), qpref));
+
+  // ------------------------------------------------------------ datos: lo que te falta
+  // Series de las novedades que tienes en Plex / Jellyfin y que tienen capítulos
+  // publicados después del último que tienes.
+  const MISS_TTL = 30 * 60e3, MISS_PAGES = 4;
+  let miss = ss.get(MISS);
+  if (!miss || Date.now() - miss.t > MISS_TTL) miss = { t: Date.now(), done: {}, list: [] };
+  let mediaOn = null;     // ¿hay Plex o Jellyfin configurado?
+  let missRun = null, missProgress = { n: 0, of: 0 };
+  async function mediaConfigured() {
+    if (mediaOn != null) return mediaOn;
+    try {
+      const s = await ext.storage.local.get(["plexUrl", "plexToken", "jfUrl", "jfKey"]);
+      mediaOn = !!((s.plexUrl && s.plexToken) || (s.jfUrl && s.jfKey));
+    } catch (_) { mediaOn = false; }
+    return mediaOn;
+  }
+  const parseEp = (name) => {
+    const m = name.match(/\b(\d{1,2})x(\d{1,3})\b/i) || name.match(/\bS(\d{1,2})\s*E(\d{1,3})\b/i);
+    return m ? { s: Number(m[1]), e: Number(m[2]) } : null;
+  };
+  const pad = (n) => String(n).padStart(2, "0");
+  // [2x06, 2x07, 2x08, 2x10] → «2x06–2x08, 2x10»
+  function ranges(eps) {
+    const out = [];
+    for (const ep of eps) {
+      const last = out[out.length - 1];
+      if (last && last.s === ep.s && last.to === ep.e - 1) last.to = ep.e;
+      else out.push({ s: ep.s, from: ep.e, to: ep.e });
+    }
+    const label = out.map((r) => `${r.s}x${pad(r.from)}` + (r.to > r.from ? `–${r.s}x${pad(r.to)}` : ""));
+    return label.length > 3 ? label.slice(0, 3).join(", ") + "…" : label.join(", ");
+  }
+  async function checkSeries(d) {
+    let res;
+    try { res = await ext.runtime.sendMessage({ action: "media-lookup", query: { title: d.title, year: Number(d.year) || null, type: "show" } }); }
+    catch (_) { return null; }
+    const found = (res?.results || []).filter((r) => r.found && r.episodes);
+    if (!found.length) return null;
+    const have = new Set();
+    let top = 0;
+    for (const r of found) for (const x of r.episodes) { have.add(`${x.s}x${x.e}`); top = Math.max(top, x.s * 1000 + x.e); }
+    if (!top) return null;
+    const page = await fetch(d.href, { credentials: "include" }).then((r) => r.ok ? r.text() : "", () => "");
+    if (!page) return null;
+    const doc = new DOMParser().parseFromString(page, "text/html");
+    const eps = new Map();
+    for (const a of $$("a[href*='Download(']", doc)) {
+      const ep = parseEp(txt(a));
+      if (ep && ep.s * 1000 + ep.e > top && !have.has(`${ep.s}x${ep.e}`)) eps.set(`${ep.s}x${ep.e}`, ep);
+    }
+    if (!eps.size) return null;
+    const list = [...eps.values()].sort((a, b) => a.s - b.s || a.e - b.e);
+    return { n: list.length, label: ranges(list), server: found[0].server };
+  }
+  function scanMissing() {
+    if (missRun) return missRun;
+    missRun = (async () => {
+      if (!(await mediaConfigured())) return;
+      while (feed.pages < MISS_PAGES && feed.next) { if (!(await loadPage())) break; }
+      const series = feed.rows.filter((r) => r.type === "series").slice(0, 80);
+      missProgress = { n: 0, of: series.length };
+      let i = 0;
+      const worker = async () => {
+        while (i < series.length) {
+          const d = series[i++];
+          if (!(d.href in miss.done)) {
+            const r = await checkSeries(d).catch(() => null);
+            miss.done[d.href] = r ? 1 : 0;
+            if (r) miss.list.push({ ...d, miss: r });
+            ss.set(MISS, miss);
+          }
+          missProgress.n++;
+          if (cur()?.id === "miss") render(true);
+        }
+      };
+      await Promise.all([worker(), worker()]);
+      missProgress.done = true;
+      if (cur()?.id === "miss") render(true);
+    })();
+    return missRun;
+  }
+
+  // Lista de cada canal
+  function listOf(c) {
+    switch (c.id) {
+      case "miss": return miss.list;
+      case "new": return feed.rows;
+      case "fav": {
+        const byHref = new Map(feed.rows.map((r) => [titleId(r.href), r]));
+        return Object.values(favs)
+          .sort((a, b) => (!!b.news - !!a.news) || (b.updated || 0) - (a.updated || 0) || (b.added || 0) - (a.added || 0))
+          .map((f) => ({ ...(byHref.get(f.id) || {}), href: f.url, title: f.title, year: f.year, type: f.type, tag: f.tag,
+            genres: f.genres, rating: f.rating, poster: f.poster || byHref.get(f.id)?.poster, news: f.news }));
+      }
+      default: return feed.rows.filter((r) => r.type === c.id);
+    }
+  }
+  // Se piden más páginas cuando te acercas al final del canal
+  async function ensure(c, idx) {
+    if (c.id === "miss" || c.id === "fav") return;
+    let guard = 0;
+    while (listOf(c).length < idx + 6 && feed.next && feed.pages < MAX_PAGES && guard++ < 8) {
+      if (!(await loadPage())) break;
+      render(true);
+    }
+  }
+
+  // ------------------------------------------------------------ pantalla
+  let root, stage, scr, content, osd, hint, noise, staticNum, msgBox;
+  function build() {
+    root = h("div", "");
+    root.id = "uispa-tv";
+    noise = document.createElement("canvas");
+    noise.className = "utv-noise";
+    noise.width = 320; noise.height = 180;
+    staticNum = h("div", "utv-static-num");
+    content = h("div", "utv-content");
+    osd = h("div", "utv-osd");
+    hint = h("div", "utv-hint");
+    msgBox = h("div", "utv-msg");
+    scr = h("div", "utv-screen", content, osd, hint, msgBox, noise, staticNum,
+      h("div", "utv-rgb"), h("div", "utv-scan"), h("div", "utv-flicker"), h("div", "utv-vig"), h("div", "utv-glare"));
+    stage = h("div", "utv-stage", h("div", "utv-bezel"), scr, h("div", "utv-led"), h("div", "utv-brand", "U I S P A · T V"));
+    root.append(stage);
+    html.append(root);
+    fit();
+  }
+  function fit() {
+    if (!stage) return;
+    stage.style.setProperty("--utv-s", String(Math.min(innerWidth / 1280, innerHeight / 720)));
+  }
+  addEventListener("resize", fit);
+
+  let noiseTimer = 0;
+  function staticBurst(ms = 380, label = null) {
+    if (!root) return Promise.resolve();
+    const x = noise.getContext("2d");
+    const img = x.createImageData(noise.width, noise.height);
+    staticNum.textContent = "";
+    if (label) staticNum.append(pad(label.n), h("small", "", label.name));
+    root.classList.add("utv-static");
+    hiss(ms);
+    const end = performance.now() + ms;
+    const r = root;
+    cancelAnimationFrame(noiseTimer);
+    return new Promise((ok) => {
+      const frame = (t) => {
+        const d = img.data;
+        for (let i = 0; i < d.length; i += 4) { const v = Math.random() * 255 | 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
+        x.putImageData(img, 0, 0);
+        if (t < end) noiseTimer = requestAnimationFrame(frame);
+        else { r.classList.remove("utv-static"); ok(); }
+      };
+      noiseTimer = requestAnimationFrame(frame);
+    });
+  }
+  let msgT;
+  function say(text) {
+    if (!msgBox) return;
+    msgBox.textContent = text;
+    msgBox.classList.add("utv-show");
+    clearTimeout(msgT);
+    msgT = setTimeout(() => msgBox.classList.remove("utv-show"), 1800);
+  }
+  const keyHint = (pairs) => {
+    hint.textContent = "";
+    pairs.forEach(([k, t], i) => { if (i) hint.append(" · "); hint.append(h("b", "", k), " " + t); });
+  };
+
+  // ------------------------------------------------------------ zapping
+  const cur = () => st && chan(st.ch);
+  const posOf = (c) => Math.max(0, st.pos?.[c.n] || 0);
+  const TYPE_TXT = { movie: "Película", series: "Serie", doc: "Documental", music: "Música" };
+
+  function zapView() {
+    const c = cur();
+    const list = listOf(c);
+    let i = Math.min(posOf(c), Math.max(0, list.length - 1));
+    osd.textContent = "";
+    osd.append(pad(c.n).replace(/^/, "CH "), h("small", "", c.name));
+    keyHint([["▲▼", "título"], ["◀▶", "canal"], ["OK", "ficha"], ["1-6", "ir a canal"], ["F", "favorito"], ["S", soundOn ? "sonido sí" : "sonido no"], ["ATRÁS", "apagar"]]);
+
+    // canal vacío: carta de ajuste o «sintonizando»
+    if (!list.length) {
+      if (c.id === "miss" && mediaOn === false) return noSignal("Conecta Plex o Jellyfin en los ajustes de UIspa para ver aquí los capítulos que te faltan de tus series.");
+      if (c.id === "fav") return noSignal("Aún no tienes favoritos. Pulsa F en cualquier título para añadirlo.");
+      const busy = c.id === "miss" ? !missProgress.done : !!feed.next && feed.pages < MAX_PAGES;
+      if (!busy) return noSignal(c.id === "miss" ? "Estás al día: no te falta ningún capítulo de las series que salen en las novedades." : "No hay títulos en este canal.");
+      const p = c.id === "miss" && missProgress.of ? missProgress.n / missProgress.of : 0;
+      return h("div", "utv-tuning", "SINTONIZANDO…",
+        h("div", "utv-bar", Object.assign(h("i", ""), { style: `width:${Math.round(p * 100)}%` })),
+        h("small", "", c.id === "miss" ? (missProgress.of ? `Comparando con tu servidor: ${missProgress.n} de ${missProgress.of} series` : "Leyendo las novedades…") : "Leyendo las novedades…"));
+    }
+    const d = list[i];
+    const bg = h("div", "utv-bg");
+    if (d.poster) bg.style.backgroundImage = `url("${d.poster}")`;
+    const poster = h("div", "utv-poster");
+    if (d.poster) {
+      const img = h("img", "");
+      img.alt = ""; img.src = d.poster;
+      img.onerror = () => img.replaceWith(h("div", "utv-nopic", d.title));
+      poster.append(img);
+    } else poster.append(h("div", "utv-nopic", d.title));
+
+    const more = c.id === "miss" ? (missProgress.done ? "" : " +") : feed.next && c.id !== "fav" ? "+" : "";
+    const status = d.badge ? (d.badge === "hoy" ? "NUEVO HOY" : d.badge === "ayer" ? "NUEVO AYER" : "") : d.last ? d.last.toUpperCase() : "";
+    const tag = h("div", "utv-tag", `▲ ${i + 1} / ${list.length}${more} ▼` + (status ? " · " + status : ""));
+    const h1 = h("h1", "utv-h1" + (d.title.length > 26 ? " utv-long" : ""), d.title);
+    const meta = h("div", "utv-meta",
+      h("span", "utv-pill", [TYPE_TXT[d.type] || "Película", d.tag].filter(Boolean).join(" · ").toUpperCase()),
+      d.year ? h("span", "", d.year) : null,
+      d.rating ? h("span", "utv-r", "★ " + d.rating) : null,
+      (d.genres || []).slice(0, 3).map((g) => h("span", "utv-pill", g)));
+    const badges = h("div", "utv-badges");
+    if (d.miss) badges.append(h("span", "utv-badge utv-miss", `Te faltan ${d.miss.label}`));
+    if (d.news) badges.append(h("span", "utv-badge utv-news", "✨ " + d.news));
+    if (d.quality) badges.append(h("span", "utv-badge" + (prefOk(d.quality) ? " utv-pref" : ""), (prefOk(d.quality) ? "★ Tu calidad: " : "") + d.quality));
+    if (isFav(d.href) && c.id !== "fav") badges.append(h("span", "utv-badge utv-favb", "★ En favoritos"));
+    const info = h("div", "utv-info", tag, h1, meta, d.synopsis ? h("p", "utv-syn", d.synopsis) : null, badges.childElementCount ? badges : null);
+    // puntos de posición (5 a la vista)
+    const dots = h("div", "utv-dots");
+    const n = Math.min(5, list.length), first = Math.max(0, Math.min(i - 2, list.length - n));
+    for (let k = first; k < first + n; k++) dots.append(h("i", k === i ? "utv-on" : ""));
+    return h("div", "utv-zap", bg, poster, info, dots);
+  }
+  function noSignal(text) {
+    const bars = h("div", "utv-bars");
+    for (const c of ["#c0c0c0", "#c0c000", "#00c0c0", "#00c000", "#c000c0", "#c00000", "#0000c0"]) bars.append(Object.assign(h("i", ""), { style: `background:${c}` }));
+    return h("div", "utv-nosig-wrap", bars, h("div", "utv-nosig", h("b", "", "SIN SEÑAL"), text));
+  }
+
+  // ------------------------------------------------------------ ficha (página del título)
+  const A = () => globalThis.__uispaActions;
+  let fz = { zone: "vers", tab: undefined, v: 0, e: 0, a: 0, scroll: {} };
+  function fichaModel() {
+    const info = globalThis.__uispaTitleInfo?.() || {};
+    const r2 = $("td.R2");
+    const genreP = r2 && $$("p.INFO", r2).find((p) => /G[ée]nero/i.test(txt($("strong", p))));
+    const genres = genreP ? $$("a", genreP).map(txt).filter(Boolean).slice(0, 3) : [];
+    const typeTxt = (txt(genreP).match(/:\s*([^>]+?)\s*>/) || [])[1] || (info.type === "show" ? "Series" : "Películas");
+    const rating = (txt($("#STARS_CONTAINER .SEP")).match(/(\d+(?:[.,]\d+)?)\s*$/) || [])[1]?.replace(",", ".");
+    const poster = $("td.L2 > img")?.src || $(".hcm-hero-cover img")?.src || "";
+    const groups = new Map((A()?.groups() || []).map((g) => [g.id, g]));
+    const versions = [];
+    for (const td of $$("table.T1 > tbody > tr > td, table.T1 > tr > td")) {
+      const h2 = $(":scope > h2", td);
+      if (!h2) continue;
+      const a = $("a[href*='Download(']", td);
+      const gid = ((a?.getAttribute("href") || "").match(/Download\(\s*(\d+)/) || [])[1];
+      const g = gid && groups.get(gid);
+      if (!g) continue;
+      const facts = U.versionFacts ? U.versionFacts(td) : {};
+      const files = [...g.rows].sort((x, y) => x.i - y.i).map((r) => {
+        const name = txt(r.link) || txt($$("a[href*='Download(']", r.tr).find((x) => txt(x)));
+        const box = document.getElementById(`elink_${g.id}_${r.i}`);
+        const badges = $$(".hc-plex", r.tr).map(txt).filter(Boolean);
+        return { i: r.i, name, ep: parseEp(name), size: txt($("td.SIZE", r.tr)), box,
+          have: r.tr?.dataset.uispaHave || "", missing: r.tr?.dataset.uispaMissing === "1", badge: badges[0] || "" };
+      });
+      const seasons = [...new Set(files.map((f) => f.ep?.s).filter((x) => x != null))];
+      if (!seasons.length) { const m = txt($(".INFOMSG", td)).match(/Temporada\s+(\d+)/i); if (m) seasons.push(Number(m[1])); }
+      const date = (facts["eLink puesto"] || "").replace(/\s*\(.*\)\s*$/, "");
+      versions.push({ gid: g.id, title: txt(h2).replace(/\s*★ Tu calidad\s*$/, ""), pref: td.classList.contains("hcm-pref"), files, seasons,
+        meta: [files.length === 1 ? "1 archivo" : `${files.length} archivos`, facts["Ripper"] ? "por " + facts["Ripper"] : null, date || null].filter(Boolean).join(" · ") });
+    }
+    const allSeasons = [...new Set(versions.flatMap((v) => v.seasons))].sort((a, b) => a - b);
+    const plex = $$(".hc-plex-hero").map(txt).filter(Boolean);
+    return { title: info.title || txt($(".hcm-title")) || document.title, year: info.year, type: typeTxt, genres, rating, poster, versions, seasons: allSeasons, plex,
+      isShow: info.type === "show" };
+  }
+  let model = null;
+  const visVersions = () => !model ? [] : model.versions.filter((v) => fz.tab == null || !v.seasons.length || v.seasons.includes(fz.tab));
+  const curVersion = () => visVersions()[Math.min(fz.v, visVersions().length - 1)] || null;
+  const visFiles = (v) => !v ? [] : v.files.filter((f) => fz.tab == null || !f.ep || f.ep.s === fz.tab);
+  const tabs = () => model && model.seasons.length >= 2 ? [...model.seasons, null] : [];
+
+  function kindFor(v) {
+    if (!v) return { kind: "all", n: 0, label: "" };
+    const checked = v.files.filter((f) => f.box?.checked).length;
+    if (checked) return { kind: "sel", n: checked, label: `marcados (${checked})` };
+    const m = v.files.filter((f) => f.missing).length;
+    if (m && m < v.files.length) return { kind: "missing", n: m, label: `los que faltan (${m})` };
+    return { kind: "all", n: v.files.length, label: v.files.length > 1 ? `todos (${v.files.length})` : "" };
+  }
+  function actions() {
+    const s = A()?.status?.() || {};
+    const v = curVersion(), k = kindFor(v);
+    const fav = $(".hcm-fav-btn");
+    const favOn = fav?.getAttribute("aria-pressed") === "true";
+    const lbl = (t) => k.label ? `${t} · ${k.label}` : t;
+    return [
+      s.nas && { id: "nas", cls: "utv-g", text: "● " + lbl("NAS"), key: "N" },
+      s.emule && { id: "emule", cls: "utv-red", text: "● " + lbl("eMule"), key: "E" },
+      s.remote && { id: "remote", cls: "utv-p", text: lbl("Remoto"), key: "R" },
+      { id: "copy", cls: "utv-y", text: "● " + lbl("Copiar"), key: "C" },
+      fav && { id: "fav", cls: "utv-b", text: favOn ? "● Quitar favorito" : "● Favorito", key: "F" },
+    ].filter(Boolean);
+  }
+  function runAction(id) {
+    if (id === "fav") { $(".hcm-fav-btn")?.click(); setTimeout(() => render(), 80); return; }
+    const v = curVersion();
+    if (!v) return;
+    const k = kindFor(v);
+    blip();
+    A()?.run(id, v.gid, k.kind);
+  }
+
+  function fichaView() {
+    model = fichaModel();
+    const t = tabs();
+    if (fz.tab === undefined || (fz.tab != null && !model.seasons.includes(fz.tab))) fz.tab = t.length ? model.seasons[model.seasons.length - 1] : null;
+    if (!t.length) fz.tab = null;
+    const vers = visVersions();
+    if (fz.v >= vers.length) fz.v = Math.max(0, vers.length - 1);
+    const v = curVersion();
+    const files = visFiles(v);
+    if (fz.e >= files.length) fz.e = Math.max(0, files.length - 1);
+    const acts = actions();
+    if (fz.a >= acts.length) fz.a = acts.length - 1;
+    if (fz.zone === "eps" && !files.length) fz.zone = "vers";
+    if (fz.zone === "tabs" && !t.length) fz.zone = "vers";
+    if (v) A()?.prefetch?.(v.gid);   // los enlaces listos antes de pulsar (Firefox / eMule en Chrome)
+
+    osd.textContent = "";
+    const c = cur();
+    osd.style.fontSize = "28px";
+    osd.append("CH " + pad(c.n), h("small", "", c.name + " · FICHA"));
+    const letters = acts.map((x) => x.key).join(" ");
+    keyHint([["▲▼◀▶", "moverse"], ["OK", model.isShow ? "marcar" : "elegir"], ["colores · " + letters, acts.map((x) => ({ nas: "NAS", emule: "eMule", remote: "remoto", copy: "copiar", fav: "favorito" }[x.id])).join(", ")], ["ATRÁS", "volver al canal"]]);
+
+    const bg = h("div", "utv-bg");
+    if (model.poster) bg.style.backgroundImage = `url("${model.poster}")`;
+    const mini = h("div", "utv-mini");
+    if (model.poster) { const im = h("img", ""); im.src = model.poster; im.alt = ""; mini.append(im); }
+    const typeOne = { "Películas": "Película", "Series": "Serie", "Documentales": "Documental", "Música": "Música" }[model.type] || model.type;
+    const metaBits = [typeOne, model.year, model.rating ? "★ " + model.rating : null, ...model.genres].filter(Boolean);
+    const sub = h("p", "", metaBits.join(" · "));
+    if (model.plex.length) sub.append(" · ", h("span", "utv-have", model.plex.join(" · ")));
+    const head = h("div", "utv-head", mini, h("div", "", h("h2", "", model.title), sub));
+
+    const tabsEl = t.length ? h("div", "utv-tabs", t.map((s, k) => {
+      const anyMissing = s != null && model.versions.some((x) => x.files.some((f) => f.missing && f.ep?.s === s));
+      return h("span", "utv-tab" + (s === fz.tab ? " utv-sel" : "") + (anyMissing ? " utv-dot" : "") + (fz.zone === "tabs" && s === fz.tab ? " utv-focus" : ""),
+        s == null ? "Todas" : `Temp. ${s}`);
+    })) : null;
+
+    const versEl = h("div", "utv-vers", vers.length ? vers.map((x, k) => h("div", "utv-ver" + (x.pref ? " utv-pref" : "") + (k === fz.v ? " utv-sel" : "") + (fz.zone === "vers" && k === fz.v ? " utv-focus" : ""),
+      h("b", "", (x.pref ? "★ " : "") + x.title), h("small", "", x.meta))) : h("div", "utv-empty", "Este título no tiene descargas."));
+
+    const epsEl = h("div", "utv-eps", files.map((f, k) => {
+      const yes = f.have && !f.missing;
+      const st = f.missing ? h("span", "utv-st utv-no", "Falta") : yes ? h("span", "utv-st utv-yes", f.badge || "✓ Lo tienes") : h("span", "utv-st", f.size);
+      return h("div", "utv-ep" + (fz.zone === "eps" && k === fz.e ? " utv-focus" : ""),
+        h("span", "", f.box ? h("span", "utv-chk" + (f.box.checked ? " utv-x" : "")) : null, f.name || "Archivo " + (f.i + 1)), st);
+    }));
+
+    const actsEl = h("div", "utv-acts", acts.map((x, k) => h("span", "utv-btn " + x.cls + (fz.zone === "acts" && k === fz.a ? " utv-focus" : ""), x.text)));
+    const view = h("div", "utv-ficha", bg, head, tabsEl, versEl, epsEl, actsEl);
+    // mantener el desplazamiento de las listas y que se vea lo enfocado
+    requestAnimationFrame(() => {
+      for (const [cls, k] of [["utv-vers", "v"], ["utv-eps", "e"]]) {
+        const box = $("." + cls, view);
+        if (!box) continue;
+        box.scrollTop = fz.scroll[k] || 0;
+        const f = $(".utv-focus, .utv-sel", box);
+        if (f) {
+          if (f.offsetTop < box.scrollTop) box.scrollTop = f.offsetTop - 6;
+          else if (f.offsetTop + f.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = f.offsetTop + f.offsetHeight - box.clientHeight + 6;
+        }
+        fz.scroll[k] = box.scrollTop;
+      }
+    });
+    return view;
+  }
+
+  // ------------------------------------------------------------ pintar
+  const inFicha = () => st?.view === "ficha" && isTitlePage();
+  let lastKey = "";
+  function render(soft = false) {
+    if (!st || !root) return;
+    const view = inFicha() ? fichaView() : zapView();
+    if (!inFicha()) osd.style.fontSize = "";
+    const key = inFicha() ? "f" : `${st.ch}:${posOf(cur())}:${listOf(cur())[posOf(cur())]?.href || ""}`;
+    const roll = !soft && key !== lastKey && !inFicha();
+    lastKey = key;
+    content.replaceChildren(view);
+    if (roll) { view.classList.add("utv-roll"); }
+  }
 
   // ------------------------------------------------------------ encender / apagar
-  function enable(how) {
-    ss.set(KEY, how);
-    html.classList.add("hcm-tv");
-    // La portada en filas tipo Netflix: si se pintó con otro diseño, se vuelve a pintar
-    if (isList() && !streamingShown()) { location.reload(); return; }
-    hint();
-    setTimeout(initFocus, 50);
+  function enable(how = "on") {
+    if (root) return;
+    const fresh = !st;
+    st = { ch: 2, pos: {}, view: "zap", ...(st || {}), on: (st?.on === "on" ? "on" : how) };
+    if (!isTitlePage()) st.view = "zap";
+    save();
+    html.classList.add("uispa-tv-on");
+    build();
+    loadFavs().then(() => render(true));
+    mediaConfigured().then(() => { scanMissing(); render(true); });
+    render();
+    if (fresh) {
+      // encendido: la línea blanca que se abre, el «clonc» y la nieve
+      root.classList.add("utv-on");
+      setTimeout(() => root?.classList.remove("utv-on"), 600);
+      thunk(true);
+      setTimeout(() => root && staticBurst(300, inFicha() ? null : cur()), 380);
+    } else {
+      staticBurst(260);   // vienes de otra página (la ficha o vuelta al canal)
+    }
+    if (!inFicha()) ensure(cur(), posOf(cur()));
     pads();
   }
   function disable() {
-    const wasStreaming = streamingShown();
-    ss.set(KEY, null);
-    html.classList.remove("hcm-tv", "hcm-tv-keys");
-    closeKeyboard();
-    setFocus(null);
-    let layout = "grid";
-    try { layout = JSON.parse(localStorage.getItem("uispa-look") || "{}").layout || "grid"; } catch (_) {}
-    if (isList() && wasStreaming && layout !== "streaming") location.reload();
+    if (!root) { st = null; save(); html.classList.remove("uispa-tv-on"); return; }
+    thunk(false);
+    root.classList.add("utv-off");
+    const r = root;
+    root = null;
+    st = null;
+    save();
+    setTimeout(() => { r.remove(); html.classList.remove("uispa-tv-on"); }, 450);
   }
   function toggle() {
-    if (isOn()) { if (isFull()) ss.set(NOFS, "1"); disable(); }
+    if (root) { if (isFull()) ss.set(NOFS, 1); disable(); }
     else enable("on");
   }
   document.addEventListener("uispa-tv-toggle", toggle);
 
-  // Pantalla completa (F11 o la del navegador)
+  // Pantalla completa (F11 o la del navegador): se enciende sola, y se apaga al salir
   const isFull = () => !!document.fullscreenElement || (innerWidth >= screen.width - 2 && innerHeight >= screen.height - 2);
   let fsTimer = null;
   addEventListener("resize", () => {
     clearTimeout(fsTimer);
     fsTimer = setTimeout(() => {
-      if (isFull()) { if (!isOn() && !ss.get(NOFS)) enable("auto"); }
-      else { ss.set(NOFS, null); if (isOn() && ss.get(KEY) === "auto") disable(); }
+      if (isFull()) { if (!root && !ss.get(NOFS)) enable("auto"); }
+      else { ss.set(NOFS, null); if (root && st?.on === "auto") disable(); }
     }, 300);
   });
 
-  // ------------------------------------------------------------ foco
-  let focused = null;
-  function setFocus(el) {
-    focused?.classList.remove("hcm-tv-focus");
-    focused = el;
-    if (!el) return;
-    if (!el.matches("a[href], button, input, select, textarea, [tabindex]")) el.tabIndex = -1;
-    el.classList.add("hcm-tv-focus");
-    el.focus({ preventScroll: true });
-    el.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
-  }
-
-  const SELECTOR = "a[href], button, input:not([type=hidden]), select, [tabindex]:not([tabindex='-1'])";
-  function scope() {
-    return document.querySelector(".hcm-tv-kb") || document.querySelector(".hc-nas-pop") || document.querySelector(".hcm-dd.hcm-open .hcm-dd-menu") || document;
-  }
-  function visible(el) {
-    if (el.disabled || el.closest("[hidden], [inert]")) return false;
-    if (/arrow/.test(el.className) || el.classList.contains("hcm-look-classic")) return false; // flechas de las filas: sobran con el mando
-    if (el.matches("input[type=text]") && el.closest(".hc-nas-pop")) return false; // escribir rutas no tiene sentido con el mando
-    if (el.checkVisibility && !el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) return false;
-    const r = el.getBoundingClientRect();
-    return r.width > 2 && r.height > 2;
-  }
-  const candidates = () => [...scope().querySelectorAll(SELECTOR)].filter(visible);
-
-  function initFocus() {
-    if (!isOn()) return;
-    const pick = (sel) => [...document.querySelectorAll(sel)].find(visible);
-    const el = isTitle()
-      ? pick(".hcm-pref > .hcm-ver-head") || pick(".hcm-seasons button.hcm-on, .hcm-seasons button") || pick(".hcm-ver-head") || pick(".hcm-fav-btn")
-      : pick(".hcm-stream-hero a") || pick(".hcm-card") || pick("#hcm-root a[href]");
-    if (el) setFocus(el);
-  }
-
-  // El elemento más cercano en esa dirección: distancia en la dirección del
-  // movimiento más una penalización por desviarse (sin penalización si se solapan)
-  function move(dir) {
-    const cur = focused && focused.isConnected && scope().contains(focused) ? focused : null;
-    const list = candidates();
-    if (!cur) { setFocus(list[0] || null); return; }
-    const a = cur.getBoundingClientRect();
-    const horizontal = dir === "right" || dir === "left";
-    const opts = [];
-    for (const el of list) {
-      if (el === cur || cur.contains(el) || el.contains(cur)) continue;
-      const b = el.getBoundingClientRect();
-      const main = dir === "right" ? b.left - a.right : dir === "left" ? a.left - b.right : dir === "down" ? b.top - a.bottom : a.top - b.bottom;
-      if (main < -8) continue;
-      const overlap = horizontal
-        ? Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)
-        : Math.min(a.right, b.right) - Math.max(a.left, b.left);
-      const side = horizontal
-        ? Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2)
-        : Math.abs((a.left + a.right) / 2 - (b.left + b.right) / 2);
-      opts.push({ el, main: Math.max(main, 0), overlap, side });
-    }
-    // En horizontal, solo lo que está en la misma fila: al final de una fila la
-    // flecha no hace nada, como en la tele. En vertical, la fila más cercana y,
-    // dentro de ella, lo que queda justo encima o debajo (o lo más próximo).
-    let pool;
-    if (horizontal) pool = opts.filter((o) => o.overlap > 4);
-    else if (opts.length) {
-      const near = Math.min(...opts.map((o) => o.main));
-      pool = opts.filter((o) => o.main <= near + 40);
-    } else pool = [];
-    let best = null, bestScore = Infinity;
-    for (const o of pool) {
-      const score = o.main + o.side * (o.overlap > 4 ? 0.2 : 1);
-      if (score < bestScore) { bestScore = score; best = o.el; }
-    }
-    if (best) setFocus(best);
-  }
-
-  function activate() {
-    const el = focused && focused.isConnected ? focused : null;
-    if (!el) { initFocus(); return; }
-    if (el.matches("input[type=search], input[type=text]")) { if (el.closest(".hcm-search")) openKeyboard(el); else el.focus(); return; }
-    el.click();
-    // Tras abrir algo (versión, temporada, recuadro del NAS) se recoloca el foco
-    setTimeout(() => {
-      const pop = document.querySelector(".hc-nas-pop");
-      if (pop && !pop.contains(focused)) setTimeout(() => { const f = candidates().find((c) => c.matches(".hc-nas-ok")) || candidates()[0]; setFocus(f || null); }, 300);
-      else if (focused && !focused.isConnected) initFocus();
-    }, 150);
-  }
-
-  function back() {
-    if (closeKeyboard()) return;
-    const pop = document.querySelector(".hc-nas-pop");
-    if (pop) {
-      const cancel = [...pop.querySelectorAll("button")].find((b) => /Cancelar|Volver/.test(b.textContent));
-      if (cancel) cancel.click(); else document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-      setTimeout(initFocus, 100);
-      return;
-    }
-    const menu = document.querySelector(".hcm-dd.hcm-open, .hcm-dd-menu.hcm-open");
-    if (menu) { document.body.click(); return; }
-    if (isHome()) disable();
-    else history.back();
-  }
-
-  function goSearch() {
-    const input = document.querySelector(".hcm-search input");
-    if (input) openKeyboard(input);
-  }
-  function favorite() {
-    const b = [...document.querySelectorAll(".hcm-fav-btn")].find(visible);
-    b?.click();
-  }
-
-  // ------------------------------------------------------------ teclado en pantalla
-  let kb = null, kbInput = null;
-  const KB_ROWS = ["1234567890", "qwertyuiop", "asdfghjklñ", "zxcvbnm-'."];
-  function openKeyboard(input) {
-    if (kb) return;
-    kbInput = input;
-    const shown = document.createElement("div");
-    shown.className = "hcm-tv-kb-text";
-    const render = () => { shown.textContent = input.value || " "; };
-    kb = document.createElement("div");
-    kb.className = "hcm-tv-kb";
-    kb.setAttribute("role", "dialog");
-    kb.setAttribute("aria-label", "Buscar");
-    const title = document.createElement("div");
-    title.className = "hcm-tv-kb-title";
-    title.textContent = "🔎 Buscar";
-    kb.append(title, shown);
-    const key = (label, fn, cls = "") => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "hcm-tv-key " + cls;
-      b.textContent = label;
-      b.addEventListener("click", () => { fn(); render(); });
-      return b;
-    };
-    for (const row of KB_ROWS) {
-      const r = document.createElement("div");
-      r.className = "hcm-tv-kb-row";
-      for (const ch of row) r.append(key(ch.toUpperCase(), () => { input.value += ch; }));
-      kb.append(r);
-    }
-    const last = document.createElement("div");
-    last.className = "hcm-tv-kb-row";
-    last.append(
-      key("Espacio", () => { input.value += " "; }, "hcm-tv-key-wide"),
-      key("⌫ Borrar", () => { input.value = input.value.slice(0, -1); }, "hcm-tv-key-wide"),
-      key("Buscar", () => submit(), "hcm-tv-key-wide hcm-tv-key-go"));
-    kb.append(last);
-    (document.getElementById("hcm-root") || document.body).append(kb);
+  // ------------------------------------------------------------ manejo
+  async function setChannel(n) {
+    const c = chan(n);
+    st.ch = c.n; st.view = "zap"; save();
+    blip();
+    await staticBurst(360, c);
     render();
-    kb.__render = render;
-    setFocus(kb.querySelector(".hcm-tv-key"));
+    ensure(c, posOf(c));
+    if (c.id === "miss") scanMissing();
   }
-  function submit() {
-    const form = kbInput?.form;
-    if (!form || !kbInput.value.trim()) return;
-    closeKeyboard();
-    form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event("submit", { cancelable: true }));
+  function step(d) {
+    const c = cur(), list = listOf(c);
+    if (!list.length) return;
+    const i = Math.max(0, Math.min(list.length - 1, posOf(c) + d));
+    if (i === posOf(c)) { say(d > 0 ? (feed.next && c.id !== "fav" && c.id !== "miss" ? "Cargando más…" : "Fin del canal") : "Principio del canal"); return; }
+    st.pos = { ...st.pos, [c.n]: i }; save();
+    hiss(70, 0.04);
+    render();
+    ensure(c, i);
   }
-  function closeKeyboard() {
-    if (!kb) return false;
-    kb.remove();
-    kb = null;
-    setTimeout(initFocus, 50);
+  function openTitle() {
+    const d = listOf(cur())[posOf(cur())];
+    if (!d) return;
+    st.view = "ficha"; st.ficha = d.href; save();
+    fz = { zone: "vers", tab: undefined, v: 0, e: 0, a: 0, scroll: {} };
+    if (isTitlePage() && titleId(location.href) === titleId(d.href)) { staticBurst(250).then(() => render()); return; }
+    staticBurst(2000);
+    location.href = d.href;
+  }
+  async function favCurrent() {
+    const d = listOf(cur())[posOf(cur())];
+    if (!d) return;
+    const on = await toggleFav(d);
+    say(on ? "★ Añadido a favoritos" : "Quitado de favoritos");
+    render(true);
+  }
+  function backToZap() {
+    st.view = "zap"; save();
+    staticBurst(250).then(() => render());
+  }
+
+  function fichaKey(k) {
+    const t = tabs(), vers = visVersions(), files = visFiles(curVersion()), acts = actions();
+    const z = fz.zone;
+    const move = (zone) => { fz.zone = zone; };
+    if (k === "up") {
+      if (z === "vers") { if (fz.v > 0) fz.v--; else if (t.length) move("tabs"); }
+      else if (z === "eps") { if (fz.e > 0) fz.e--; else if (t.length) move("tabs"); }
+      else if (z === "acts") move(files.length && fz.lastList === "eps" ? "eps" : "vers");
+    } else if (k === "down") {
+      if (z === "tabs") move("vers");
+      else if (z === "vers") { if (fz.v < vers.length - 1) fz.v++; else if (acts.length) { fz.lastList = "vers"; move("acts"); } }
+      else if (z === "eps") { if (fz.e < files.length - 1) fz.e++; else if (acts.length) { fz.lastList = "eps"; move("acts"); } }
+    } else if (k === "left" || k === "right") {
+      const d = k === "left" ? -1 : 1;
+      if (z === "tabs") { const i = t.indexOf(fz.tab); fz.tab = t[Math.max(0, Math.min(t.length - 1, i + d))]; fz.v = 0; fz.e = 0; fz.scroll = {}; }
+      else if (z === "acts") fz.a = Math.max(0, Math.min(acts.length - 1, fz.a + d));
+      else if (z === "vers" && d > 0 && files.length) move("eps");
+      else if (z === "eps" && d < 0) move("vers");
+    } else if (k === "ok") {
+      if (z === "tabs") move("vers");
+      else if (z === "vers") { if (files.length) { move("eps"); fz.e = 0; fz.scroll.e = 0; } }
+      else if (z === "eps") {
+        const f = files[fz.e];
+        if (f?.box) f.box.click();
+        else if (acts.length) { fz.lastList = "eps"; move("acts"); }
+      } else if (z === "acts") runAction(acts[fz.a]?.id);
+    }
+    if (z === "vers" && fz.zone === "vers" && (k === "up" || k === "down")) { fz.e = 0; fz.scroll.e = 0; }
+    render(true);
+  }
+
+  // Teclas → órdenes
+  const COLOR = { ColorF0Red: "emule", ColorF1Green: "nas", ColorF2Yellow: "copy", ColorF3Blue: "fav" };
+  function command(cmd) {
+    if (!root) return;
+    if (inFicha()) {
+      if (cmd === "back") return backToZap();
+      if (["up", "down", "left", "right", "ok"].includes(cmd)) return fichaKey(cmd);
+      if (cmd.startsWith("act:")) { const id = cmd.slice(4); if (actions().some((a) => a.id === id)) runAction(id); else say("No disponible"); return; }
+      if (cmd === "sound") return toggleSound();
+      if (/^ch\d$/.test(cmd) || cmd === "chup" || cmd === "chdown") { st.view = "zap"; save(); }
+      else return;
+    }
+    switch (cmd) {
+      case "up": return step(-1);
+      case "down": return step(1);
+      case "left": case "chdown": return setChannel(cur().n === 1 ? CHANNELS.length : cur().n - 1);
+      case "right": case "chup": return setChannel(cur().n === CHANNELS.length ? 1 : cur().n + 1);
+      case "ok": return openTitle();
+      case "back": return toggle();
+      case "act:fav": return favCurrent();
+      case "sound": return toggleSound();
+      default:
+        if (/^ch\d$/.test(cmd)) { const n = Number(cmd.slice(2)); if (CHANNELS.some((c) => c.n === n)) setChannel(n); }
+    }
+  }
+  function toggleSound() {
+    soundOn = !soundOn;
+    ls.set("uispa-tv-sound", soundOn ? "1" : null);
+    say(soundOn ? "🔊 Sonido activado" : "🔇 Sonido desactivado");
+    if (soundOn) thunk(true);
+    render(true);
+  }
+
+  const popOpen = () => !!document.querySelector(".hc-nas-pop");
+  // Dentro del recuadro del NAS: las flechas van de un control al siguiente
+  function popKey(e) {
+    const pop = document.querySelector(".hc-nas-pop");
+    const items = $$("button, input, a[href], select", pop).filter((x) => !x.disabled && x.offsetParent !== null);
+    if (!items.length) return false;
+    const a = document.activeElement;
+    const typing = a?.tagName === "INPUT" && a.type === "text";
+    const i = items.indexOf(a);
+    let d = 0;
+    if (e.key === "ArrowDown") d = 1;
+    else if (e.key === "ArrowUp") d = -1;
+    else if (!typing && e.key === "ArrowRight") d = 1;
+    else if (!typing && e.key === "ArrowLeft") d = -1;
+    else if (e.key === "Backspace" && !typing) { e.preventDefault(); pop.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); return true; }
+    else if (e.key === "Enter" && a?.type === "checkbox") { e.preventDefault(); a.click(); return true; }
+    if (!d) return true;   // el resto, al recuadro
+    e.preventDefault();
+    items[(i < 0 ? 0 : i + d + items.length) % items.length].focus();
     return true;
   }
 
-  // ------------------------------------------------------------ teclado y mando de la tele
-  const DIRS = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
-  const BACK = new Set(["Backspace", "Escape", "BrowserBack", "GoBack"]);
   addEventListener("keydown", (e) => {
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
     const t = e.target;
-    const typing = !!t?.matches && (t.isContentEditable || (t.matches("input, textarea, select") && !t.matches("input[type=checkbox], input[type=radio]")));
-    if (!isOn()) {
-      if ((e.key === "t" || e.key === "T") && !typing) { e.preventDefault(); toggle(); }
+    const typing = t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+    if (!root) {
+      if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "t" || e.key === "T")) { e.preventDefault(); toggle(); }
       return;
     }
-    // Con el teclado en pantalla abierto, también se puede escribir con el de verdad
-    if (kb) {
-      if (e.key.length === 1 && e.key !== " ") { e.preventDefault(); kbInput.value += e.key; kb.__render(); return; }
-      if (e.key === "Backspace") { e.preventDefault(); kbInput.value = kbInput.value.slice(0, -1); kb.__render(); return; }
-    }
-    if (typing && !kb) {
-      // En un campo de texto las flechas izquierda/derecha mueven el cursor
-      if (e.key === "Escape") { e.preventDefault(); t.blur(); setFocus(t); }
-      else if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); move(DIRS[e.key]); }
-      return;
-    }
-    html.classList.add("hcm-tv-keys");
-    if (DIRS[e.key]) { e.preventDefault(); e.stopPropagation(); move(DIRS[e.key]); }
-    else if (e.key === "Enter" || (e.key === " " && kb)) { e.preventDefault(); e.stopPropagation(); activate(); }
-    else if (BACK.has(e.key)) { e.preventDefault(); e.stopPropagation(); back(); }
-    else if (e.key === "t" || e.key === "T") { e.preventDefault(); toggle(); }
-    else if (e.key === "/" || e.key === "s" || e.key === "S") { e.preventDefault(); goSearch(); }
-    else if (e.key === "f" || e.key === "F") { e.preventDefault(); favorite(); }
+    if (popOpen()) { popKey(e); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const map = {
+      ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
+      Enter: "ok", " ": "ok", Select: "ok",
+      Escape: "back", Backspace: "back", BrowserBack: "back", GoBack: "back",
+      PageUp: "chup", PageDown: "chdown", ChannelUp: "chup", ChannelDown: "chdown",
+      t: "back", T: "back", s: "sound", S: "sound", m: "sound", M: "sound",
+      f: "act:fav", F: "act:fav", n: "act:nas", N: "act:nas", e: "act:emule", E: "act:emule",
+      c: "act:copy", C: "act:copy", r: "act:remote", R: "act:remote",
+    };
+    let cmd = map[e.key] || (COLOR[e.key] ? "act:" + COLOR[e.key] : null);
+    if (!cmd && /^[0-9]$/.test(e.key)) cmd = "ch" + e.key;
+    if (!cmd) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if ((cmd === "back") && (e.key === "t" || e.key === "T")) { toggle(); return; }
+    command(cmd);
   }, true);
-  // Al volver a usar el ratón, se ve el puntero
-  addEventListener("mousemove", () => html.classList.remove("hcm-tv-keys"), { passive: true });
-  // Si el foco cambia con el ratón o con Tab, se sigue desde ahí
-  addEventListener("focusin", (e) => { if (isOn() && e.target !== focused && e.target.matches?.(SELECTOR)) { focused?.classList.remove("hcm-tv-focus"); focused = e.target; focused.classList.add("hcm-tv-focus"); } });
+  // la rueda del ratón también hace zapping
+  let wheelT = 0;
+  addEventListener("wheel", (e) => {
+    if (!root || popOpen()) return;
+    e.preventDefault();
+    const now = Date.now();
+    if (now - wheelT < 250) return;
+    wheelT = now;
+    command(e.deltaY > 0 ? "down" : "up");
+  }, { passive: false, capture: true });
 
   // ------------------------------------------------------------ mando de consola
-  // A = aceptar · B = atrás · Y = buscar · X = favorito · Start = modo tele · cruceta o stick = moverse
+  // Cruceta = flechas · A = OK · B = atrás · X = NAS · Y = favorito · LB/RB = canal · Select = sonido
   let padLoop = 0;
   const held = new Map();
   function pads() {
     if (padLoop || !navigator.getGamepads) return;
-    const tick = (now) => {
-      padLoop = requestAnimationFrame(tick);
-      const gp = [...navigator.getGamepads()].find(Boolean);
-      if (!gp) return;
-      const ax = gp.axes || [];
-      const pressed = {
-        up: gp.buttons[12]?.pressed || ax[1] < -0.6, down: gp.buttons[13]?.pressed || ax[1] > 0.6,
-        left: gp.buttons[14]?.pressed || ax[0] < -0.6, right: gp.buttons[15]?.pressed || ax[0] > 0.6,
-        a: gp.buttons[0]?.pressed, b: gp.buttons[1]?.pressed, x: gp.buttons[2]?.pressed, y: gp.buttons[3]?.pressed,
-        start: gp.buttons[9]?.pressed,
-      };
-      for (const [k, on] of Object.entries(pressed)) {
-        const h = held.get(k);
-        if (!on) { held.delete(k); continue; }
-        const repeat = ["up", "down", "left", "right"].includes(k);
-        if (!h) { held.set(k, { t: now, n: 0 }); fire(k); }
-        else if (repeat && now - h.t > (h.n ? 120 : 380)) { h.t = now; h.n++; fire(k); }
+    const BTN = { 12: "up", 13: "down", 14: "left", 15: "right", 0: "ok", 1: "back", 2: "act:nas", 3: "act:fav", 4: "chdown", 5: "chup", 8: "sound" };
+    const tick = () => {
+      padLoop = 0;
+      if (!root) return;
+      const now = performance.now();
+      for (const gp of navigator.getGamepads()) {
+        if (!gp) continue;
+        for (const [b, cmd] of Object.entries(BTN)) {
+          const k = gp.index + ":" + b;
+          const pressed = gp.buttons[b]?.pressed;
+          const prev = held.get(k);
+          if (pressed && (!prev || (/^(up|down|left|right)$/.test(cmd) && now - prev > 320))) { held.set(k, prev ? now - 200 : now); command(cmd); }
+          else if (!pressed) held.delete(k);
+        }
+        // stick izquierdo como cruceta
+        const [x = 0, y = 0] = gp.axes;
+        const dir = Math.abs(y) > 0.6 ? (y > 0 ? "down" : "up") : Math.abs(x) > 0.6 ? (x > 0 ? "right" : "left") : null;
+        const k = gp.index + ":axis";
+        if (dir) { const prev = held.get(k); if (!prev || now - prev > 320) { held.set(k, now); command(dir); } }
+        else held.delete(k);
       }
-    };
-    const fire = (k) => {
-      if (k === "start") { toggle(); return; }
-      if (!isOn()) return;
-      html.classList.add("hcm-tv-keys");
-      if (["up", "down", "left", "right"].includes(k)) move(k);
-      else if (k === "a") activate();
-      else if (k === "b") back();
-      else if (k === "y") goSearch();
-      else if (k === "x") favorite();
+      padLoop = requestAnimationFrame(tick);
     };
     padLoop = requestAnimationFrame(tick);
   }
-  addEventListener("gamepadconnected", pads);
+  addEventListener("gamepadconnected", () => { if (root) pads(); });
 
-  // ------------------------------------------------------------ aviso al entrar
-  function hint() {
-    document.querySelector(".hcm-tv-hint")?.remove();
-    const d = document.createElement("div");
-    d.className = "hcm-tv-hint";
-    d.textContent = "📺 Modo tele · ↑↓←→ moverse · Intro abrir · Atrás volver · / buscar · F favorito · T salir";
-    (document.getElementById("hcm-root") || document.body).append(d);
-    setTimeout(() => d.classList.add("hcm-tv-hint-out"), 4500);
-    setTimeout(() => d.remove(), 5200);
+  // ------------------------------------------------------------ arranque
+  // En la ficha, las marcas de Plex / Jellyfin y los botones del NAS llegan después
+  document.addEventListener("uispa-media", () => inFicha() && render(true));
+  if (isTitlePage()) setTimeout(() => inFicha() && render(true), 1200);
+  if (st?.on) {
+    if (st.view === "ficha" && st.ficha && titleId(st.ficha) !== titleId(location.href)) st.view = "zap";
+    enable(st.on);
+  } else if (isFull() && !ss.get(NOFS)) {
+    enable("auto");
   }
-
-  // Al cargar una página con el modo tele ya activo (se guarda mientras dure la pestaña)
-  if (ss.get(KEY)) {
-    html.classList.add("hcm-tv");
-    setTimeout(initFocus, 300);
-    pads();
-  } else if (isFull() && !ss.get(NOFS)) enable("auto");
 })();

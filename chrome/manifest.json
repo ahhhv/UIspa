@@ -36,7 +36,8 @@
       ],
       "css": [
         "theme.css",
-        "content.css"
+        "content.css",
+        "tv.css"
       ],
       "run_at": "document_start"
     },

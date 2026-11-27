@@ -954,4 +954,22 @@
   });
 
   window.__hcDebug = { findGroups, fetchLinks, copyAllPage, copySelectedPage, cache };
+
+  // Para UIspa TV (tv.js): las mismas acciones que los botones de cada versión.
+  // kind: "all" | "sel" (marcados) | "missing" (los que te faltan)
+  globalThis.__uispaActions = {
+    groups: () => findGroups(),
+    status: () => ({ nas: nasOn, remote: amOn, emule: emuleOn }),
+    prefetch: (id) => { const g = findGroups().find((x) => x.id === id); if (g) prefetch(g); },
+    run(what, id, kind) {
+      const g = findGroups().find((x) => x.id === id);
+      if (!g) return;
+      const btn = document.createElement("a");
+      const label = { sel: "seleccionados", missing: "los que faltan", all: g.count > 1 ? "toda la versión" : "" }[kind] || "";
+      if (what === "copy") copyGroup(g, btn, kind, label);
+      else if (what === "emule") sendToEmule(g, btn, kind);
+      else if (what === "nas") sendToNas(g, btn, kind);
+      else if (what === "remote") sendToAmule(g, btn, kind);
+    }
+  };
 })();

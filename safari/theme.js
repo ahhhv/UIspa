@@ -88,7 +88,7 @@
     look = { ...LOOK_DEFAULT, ...next };
     const light = look.theme === "light" || (look.theme === "auto" && !!lightQuery?.matches);
     html.classList.toggle("hcm-light", light);
-    html.dataset.hcmLayout = html.classList.contains("hcm-tv") ? "streaming" : (look.layout || "grid");
+    html.dataset.hcmLayout = look.layout || "grid";
     html.dataset.hcmSize = look.size || "m";
     html.dataset.hcmTitleSize = look.titleSize || "m";
     try { localStorage.setItem("uispa-look", JSON.stringify(look)); } catch (_) {}
@@ -225,8 +225,8 @@
       h("div", { class: "hcm-look-label" }, "Título y datos"),
       h("div", { class: "hcm-seg" }, opt("titleSize", "s", "Pequeño"), opt("titleSize", "m", "Mediano"), opt("titleSize", "l", "Grande")),
       h("label", { class: "hcm-look-check", onclick: (e) => e.stopPropagation() }, scroll, " Cargar más títulos al bajar"),
-      h("button", { type: "button", class: "hcm-look-tv", title: "Para usar con mando o flechas en la tele (tecla T)",
-        onclick: () => document.dispatchEvent(new CustomEvent("uispa-tv-toggle")) }, "📺 Modo tele (T)"),
+      h("button", { type: "button", class: "hcm-look-tv", title: "Hispashare como una tele antigua, para verlo en la tele con el mando (tecla T)",
+        onclick: () => document.dispatchEvent(new CustomEvent("uispa-tv-toggle")) }, "📺 UIspa TV (T)"),
       h("a", { href: "#", class: "hcm-look-classic", onclick: (e) => {
         e.preventDefault();
         try { localStorage.setItem("hcm-off", "1"); } catch (_) {}
@@ -292,8 +292,7 @@
   // Revista. Todos los elementos son a.hcm-card con .poster-wrapper, data-type y
   // data-last, para que los favoritos (estrella, fechas) funcionen igual.
   const LAYOUTS = ["grid", "streaming", "list", "magazine"];
-  // En el modo tele (tv.js) la portada va siempre en filas, tipo Netflix
-  const layoutOf = () => html.classList.contains("hcm-tv") ? "streaming" : (LAYOUTS.includes(look.layout) ? look.layout : "grid");
+  const layoutOf = () => (LAYOUTS.includes(look.layout) ? look.layout : "grid");
   const TYPE_ORDER = [["series", "Series"], ["movie", "Películas"], ["doc", "Documentales"], ["music", "Música"]];
 
   function itemShell(d, cls, posterKids, bodyKids) {
@@ -588,14 +587,16 @@
     a.__uispa = { title: d.title, year: d.year, type, tag: d.tag, genres: d.genres || [], rating: d.rating, poster: d.poster };
     return a;
   }
-  globalThis.__uispa = { ...(globalThis.__uispa || {}), buildCard, splitTitle };
+  // UIspa TV (tv.js) lee los listados y las fichas con estas mismas funciones
+  globalThis.__uispa = { ...(globalThis.__uispa || {}), buildCard, splitTitle, rowData, listRows,
+    nextPageUrl: (pag, base) => nextPageUrl(pag, base), qualityOf, matchesPref, versionFacts };
 
   // Scroll infinito: al llegar al final se pide la página siguiente y se
   // añaden sus títulos. La paginación se queda debajo por si se desactiva.
-  function nextPageUrl(pag) {
+  function nextPageUrl(pag, base = location.href) {
     const cur = Number(txt($("span", pag))) || 1;
     const a = $$("a", pag).find((x) => Number((x.getAttribute("href").match(/page=(\d+)/) || [])[1]) === cur + 1);
-    return a ? new URL(a.getAttribute("href"), location.href).href : null;
+    return a ? new URL(a.getAttribute("href"), new URL(base, location.href)).href : null;
   }
   function infiniteScroll(view, pag, pager) {
     const grid = view.grid;

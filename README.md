@@ -110,7 +110,6 @@ Pulsa el botón ◐ de la barra superior de Hispashare (o ve a la pestaña **Apa
 - **Tema:** oscuro, claro o automático (sigue el de tu sistema).
 - **Diseño:** Rejilla, Streaming, Lista o Revista.
 - **Calidad preferida:** marca resolución, origen y códec (o elige un preset: Apple TV, Smart TV, Fire TV, Chromecast, Shield, Kodi, móvil, NAS sin conversión por hardware, ahorrar espacio, equilibrado o máxima calidad) y en cada ficha se resaltan con «★ Tu calidad» las versiones que encajan.
-- **Modo tele:** para usar Hispashare en la tele desde un portátil o mini PC. Se activa con la tecla **T**, desde el menú ◐ o al poner el navegador en pantalla completa (F11). Todo más grande y manejable con flechas + Intro + Atrás: teclado, mando de la tele (HDMI-CEC) o mando de consola (A aceptar, B atrás, Y buscar, X favorito, Start entrar/salir). La portada pasa a filas tipo Netflix, hay teclado en pantalla para buscar (`/`) y **F** marca favorito. Atrás en la portada sale del modo tele.
 - **Carátulas:** pequeñas, medianas o grandes.
 - **Título y datos:** tamaño del texto de las tarjetas (pequeño, mediano o grande).
 - **Cargar más títulos al bajar:** scroll infinito en la portada y las búsquedas; si lo desactivas, vuelve la paginación.
@@ -177,6 +176,16 @@ Pulsa **Probar conexión** para cargar las categorías, elige una si quieres y p
 
 En Firefox, para que se sincronicen entre ordenadores tienes que tener activada la sincronización de complementos en tu cuenta de Firefox.
 
+## UIspa TV
+
+Hispashare convertido en una tele antigua, para verlo en la tele desde un portátil o mini PC. Se enciende con la tecla **T**, desde el menú ◐ (**📺 UIspa TV**) o al poner el navegador en pantalla completa (F11), y se apaga igual o con **Atrás**.
+
+- **Canales:** 1 Lo que te falta · 2 Novedades · 3 Películas · 4 Series · 5 Documentales · 6 Favoritos. «Lo que te falta» (con Plex o Jellyfin conectados) son las series de las novedades que tienes en tu servidor y con capítulos publicados después del último que tienes.
+- **Zapping:** ▲▼ cambian de título (uno por pantalla), ◀▶ o CH+/CH− cambian de canal y los números van directos a un canal. **F** añade o quita de favoritos.
+- **Ficha:** OK abre la ficha a pantalla completa con las versiones (resaltada la de tu calidad), los capítulos (en tu Plex / te faltan) y los botones de colores: **verde** NAS, **rojo** eMule, **amarillo** Copiar, **azul** Favorito (con teclado: N, E, C, F; R para la descarga remota). Con capítulos marcados se envían esos; si no, los que te faltan, y si no, todos.
+- **Mandos:** teclado, mando de la tele (HDMI-CEC, con sus botones de colores) o mando de consola (cruceta, A aceptar, B atrás, X NAS, Y favorito, LB/RB canal, Select sonido).
+- **Efectos:** líneas de barrido, curvatura, viñeta, nieve al cambiar de canal y encendido y apagado de tubo. El sonido viene apagado: **S** lo activa.
+
 ## Privacidad
 
 - UIspa no recoge ni envía datos a ningún servidor propio ni de terceros. En Firefox lo declara así en su instalación (`data_collection_permissions: none`).
@@ -210,7 +219,6 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 |---|---|
 | `manifest.json` | Definición de la extensión |
 | `theme-early.js`, `theme.js`, `theme.css` | Rediseño de la web: apariencia, scroll infinito, versiones plegables y temporadas |
-| `tv.js` | Modo tele: navegación con flechas, mando de la tele o de consola, teclado en pantalla |
 | `content.js`, `content.css` | Botones de copiar, eMule, descarga remota y NAS (también «los que faltan») y avisos |
 | `media.js` | Marcas de Plex o Jellyfin en las fichas |
 | `background.js` | Segundo plano: atajos y menús |
@@ -218,6 +226,7 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 | `synology-bg.js` | Envío de enlaces a Download Station y exploración de carpetas |
 | `amule-bg.js` | Envío de enlaces a la descarga remota (aMule, aMuTorrent, Rucio o Mularr) |
 | `favorites.js` | Favoritos: estrellas, fila de la portada y aviso de novedades |
+| `tv.js`, `tv.css` | UIspa TV: canales, zapping y ficha a pantalla completa con aspecto de tele antigua |
 | `setup-bg.js` | Abre el asistente de configuración al instalar |
 | `offscreen.html`, `offscreen.js` | Solo Chrome: copia al portapapeles desde segundo plano |
 | `options.html`, `options.js`, `options.css` | Página de ajustes y asistente de configuración |
