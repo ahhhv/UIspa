@@ -475,9 +475,6 @@ html.hcm .hcm-seg-btn:hover { color: var(--text); }
 html.hcm .hcm-seg-btn.hcm-on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
 html.hcm .hcm-look-check { display: flex; align-items: center; gap: 8px; font-size: 14px; padding: 6px 2px; cursor: pointer; }
 html.hcm .hcm-look-check input { accent-color: var(--accent); }
-html.hcm .hcm-look-tv { all: unset; box-sizing: border-box; display: block; width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 8px;
-  cursor: pointer; font-size: 14px; font-weight: 600; text-align: center; color: var(--text); background: var(--tint); border: 1px solid var(--border); }
-html.hcm .hcm-look-tv:hover { border-color: var(--accent); }
 html.hcm #hcm-root .hcm-look .hcm-look-classic { display: block; margin-top: 6px; padding: 8px 2px 2px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
 
 /* ---------------------------------------------------------- tema claro */

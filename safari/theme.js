@@ -225,8 +225,6 @@
       h("div", { class: "hcm-look-label" }, "Título y datos"),
       h("div", { class: "hcm-seg" }, opt("titleSize", "s", "Pequeño"), opt("titleSize", "m", "Mediano"), opt("titleSize", "l", "Grande")),
       h("label", { class: "hcm-look-check", onclick: (e) => e.stopPropagation() }, scroll, " Cargar más títulos al bajar"),
-      h("button", { type: "button", class: "hcm-look-tv", title: "Hispashare como una tele antigua, para verlo en la tele con el mando (tecla T)",
-        onclick: () => document.dispatchEvent(new CustomEvent("uispa-tv-toggle")) }, "📺 UIspa TV (T)"),
       h("a", { href: "#", class: "hcm-look-classic", onclick: (e) => {
         e.preventDefault();
         try { localStorage.setItem("hcm-off", "1"); } catch (_) {}
@@ -587,16 +585,14 @@
     a.__uispa = { title: d.title, year: d.year, type, tag: d.tag, genres: d.genres || [], rating: d.rating, poster: d.poster };
     return a;
   }
-  // UIspa TV (tv.js) lee los listados y las fichas con estas mismas funciones
-  globalThis.__uispa = { ...(globalThis.__uispa || {}), buildCard, splitTitle, rowData, listRows,
-    nextPageUrl: (pag, base) => nextPageUrl(pag, base), qualityOf, matchesPref, versionFacts };
+  globalThis.__uispa = { ...(globalThis.__uispa || {}), buildCard, splitTitle };
 
   // Scroll infinito: al llegar al final se pide la página siguiente y se
   // añaden sus títulos. La paginación se queda debajo por si se desactiva.
-  function nextPageUrl(pag, base = location.href) {
+  function nextPageUrl(pag) {
     const cur = Number(txt($("span", pag))) || 1;
     const a = $$("a", pag).find((x) => Number((x.getAttribute("href").match(/page=(\d+)/) || [])[1]) === cur + 1);
-    return a ? new URL(a.getAttribute("href"), new URL(base, location.href)).href : null;
+    return a ? new URL(a.getAttribute("href"), location.href).href : null;
   }
   function infiniteScroll(view, pag, pager) {
     const grid = view.grid;

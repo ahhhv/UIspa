@@ -34,8 +34,7 @@
       ],
       "css": [
         "theme.css",
-        "content.css",
-        "tv.css"
+        "content.css"
       ],
       "run_at": "document_start"
     },
@@ -61,8 +60,7 @@
       "js": [
         "content.js",
         "media.js",
-        "favorites.js",
-        "tv.js"
+        "favorites.js"
       ],
       "run_at": "document_idle"
     }

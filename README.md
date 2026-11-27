@@ -176,16 +176,6 @@ Pulsa **Probar conexión** para cargar las categorías, elige una si quieres y p
 
 En Firefox, para que se sincronicen entre ordenadores tienes que tener activada la sincronización de complementos en tu cuenta de Firefox.
 
-## UIspa TV
-
-Hispashare convertido en una tele antigua, para verlo en la tele desde un portátil o mini PC. Se enciende con la tecla **T**, desde el menú ◐ (**📺 UIspa TV**) o al poner el navegador en pantalla completa (F11), y se apaga igual o con **Atrás**.
-
-- **Canales:** 1 Lo que te falta · 2 Novedades · 3 Películas · 4 Series · 5 Documentales · 6 Favoritos. «Lo que te falta» (con Plex o Jellyfin conectados) son las series de las novedades que tienes en tu servidor y con capítulos publicados después del último que tienes.
-- **Zapping:** ▲▼ cambian de título (uno por pantalla), ◀▶ o CH+/CH− cambian de canal y los números van directos a un canal. **F** añade o quita de favoritos.
-- **Ficha:** OK abre la ficha a pantalla completa con las versiones (resaltada la de tu calidad), los capítulos (en tu Plex / te faltan) y los botones de colores: **verde** NAS, **rojo** eMule, **amarillo** Copiar, **azul** Favorito (con teclado: N, E, C, F; R para la descarga remota). Con capítulos marcados se envían esos; si no, los que te faltan, y si no, todos.
-- **Mandos:** teclado, mando de la tele (HDMI-CEC, con sus botones de colores) o mando de consola (cruceta, A aceptar, B atrás, X NAS, Y favorito, LB/RB canal, Select sonido).
-- **Efectos:** líneas de barrido, curvatura, viñeta, nieve al cambiar de canal y encendido y apagado de tubo. El sonido viene apagado: **S** lo activa.
-
 ## Privacidad
 
 - UIspa no recoge ni envía datos a ningún servidor propio ni de terceros. En Firefox lo declara así en su instalación (`data_collection_permissions: none`).
@@ -226,7 +216,6 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 | `synology-bg.js` | Envío de enlaces a Download Station y exploración de carpetas |
 | `amule-bg.js` | Envío de enlaces a la descarga remota (aMule, aMuTorrent, Rucio o Mularr) |
 | `favorites.js` | Favoritos: estrellas, fila de la portada y aviso de novedades |
-| `tv.js`, `tv.css` | UIspa TV: canales, zapping y ficha a pantalla completa con aspecto de tele antigua |
 | `setup-bg.js` | Abre el asistente de configuración al instalar |
 | `offscreen.html`, `offscreen.js` | Solo Chrome: copia al portapapeles desde segundo plano |
 | `options.html`, `options.js`, `options.css` | Página de ajustes y asistente de configuración |
