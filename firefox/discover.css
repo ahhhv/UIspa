@@ -12,6 +12,8 @@ html.hcm .hcm-disc-head h1 { font-size: 26px; margin: 0 14px 0 0; color: var(--t
 html.hcm .hcm-disc-spacer { flex: 1; }
 html.hcm .hcm-disc-genre { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; }
 html.hcm .hcm-disc-rates { display: flex; gap: 6px; flex-wrap: wrap; }
+html.hcm .hcm-disc-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 12px; }
+html.hcm .hcm-disc-years { padding-left: 16px; border-left: 1px solid var(--border); }
 html.hcm .hcm-disc-chip, html.hcm .hcm-disc-later, html.hcm .hcm-disc-undo, html.hcm .hcm-disc-close {
   all: unset; box-sizing: border-box; cursor: pointer; padding: 6px 14px; border-radius: 999px; font-size: 13px;
   background: var(--tint); border: 1px solid var(--border); color: var(--text); }

@@ -59,8 +59,8 @@
 
   // ------------------------------------------------------------ almacenamiento
   // discoverLater: [{ id, href, title, year, poster, rating, added }] · discoverNope: { id: { title, year, poster, t } }
-  // discoverPrefs: { genre, minRating, always: "" | "now" | "later" | "open" }
-  let later = [], nope = {}, prefs = { genre: "", minRating: 0, always: "" }, qpref = null;
+  // discoverPrefs: { genre, minRating, minYear, always: "" | "now" | "later" | "open" }
+  let later = [], nope = {}, prefs = { genre: "", minRating: 0, minYear: 0, always: "" }, qpref = null;
   async function loadStore() {
     const r = await api.storage.local.get(["discoverLater", "discoverNope", "discoverPrefs", "qualityPref", "discoverUndo"]);
     if (!undoList.length && Array.isArray(r.discoverUndo)) undoList = r.discoverUndo.filter((x) => x?.d?.href);
@@ -250,6 +250,7 @@
     const id = titleId(d.href);
     if (!id || seen.has(id) || nope[id] || isLater(d) || d.type !== "movie" || owned(d)) return false;
     if (prefs.minRating && !(Number(d.rating) >= prefs.minRating)) return false;
+    if (prefs.minYear && !(Number(d.year) >= prefs.minYear)) return false;
     return true;
   }
   function fill() {
@@ -308,6 +309,10 @@
     const rateBox = h("div", { class: "hcm-disc-rates", role: "radiogroup", "aria-label": "Nota mínima" },
       rates.map(([v, l]) => h("button", { type: "button", class: "hcm-disc-chip", "data-v": String(v),
         onclick: () => { prefs.minRating = v; savePrefs(); restart(); } }, l)));
+    const years = [[0, "Cualquier año"], [1990, "1990+"], [2000, "2000+"], [2010, "2010+"], [2020, "2020+"]];
+    const yearBox = h("div", { class: "hcm-disc-rates hcm-disc-years", role: "radiogroup", "aria-label": "Año desde" },
+      years.map(([v, l]) => h("button", { type: "button", class: "hcm-disc-chip hcm-disc-year", "data-y": String(v),
+        onclick: () => { prefs.minYear = v; savePrefs(); restart(); } }, l)));
     laterBtn = h("button", { type: "button", class: "hcm-disc-later", onclick: () => showLater() });
     notice = h("p", { class: "hcm-disc-notice", hidden: true });
     stage = h("div", { class: "hcm-disc-stage" });
@@ -315,9 +320,10 @@
       h("i", {}, icon), h("span", {}, label), h("kbd", {}, key));
     view = h("section", { class: "hcm-disc", "aria-label": "¿Qué veo esta noche?" },
       h("div", { class: "hcm-disc-head" },
-        h("h1", {}, "🎲 ¿Qué veo esta noche?"), genreSel, rateBox,
+        h("h1", {}, "🎲 ¿Qué veo esta noche?"),
         h("div", { class: "hcm-disc-spacer" }), laterBtn,
         h("button", { type: "button", class: "hcm-disc-close", title: "Cerrar (Esc)", onclick: () => close() }, "✕")),
+      h("div", { class: "hcm-disc-filters" }, genreSel, rateBox, yearBox),
       notice, stage,
       h("div", { class: "hcm-disc-acts" },
         btn("hcm-disc-back-btn", "↶", "Atrás", "Retroceso", () => undo()),
@@ -332,7 +338,8 @@
     laterBtn.append("📋 Para luego ", h("b", {}, String(later.length)));
     const bb = view.querySelector(".hcm-disc-back-btn");
     if (bb) { bb.disabled = !undoList.length; bb.title = undoList.length ? `Volver a «${undoList[undoList.length - 1].d.title}»` : "No hay nada a lo que volver"; }
-    $$(".hcm-disc-chip", view).forEach((b) => b.classList.toggle("hcm-on", Number(b.dataset.v) === Number(prefs.minRating || 0)));
+    $$(".hcm-disc-chip:not(.hcm-disc-year)", view).forEach((b) => b.classList.toggle("hcm-on", Number(b.dataset.v) === Number(prefs.minRating || 0)));
+    $$(".hcm-disc-year", view).forEach((b) => b.classList.toggle("hcm-on", Number(b.dataset.y) === Number(prefs.minYear || 0)));
   }
 
   function card(d) {
@@ -395,7 +402,7 @@
       if (taste && !filling && sources.length && more) setTimeout(fill, 0);
       stage.append(h("div", { class: "hcm-disc-empty" }, busy
         ? [h("div", { class: "hcm-disc-spin" }), taste ? "Buscando películas para ti…" : "Leyendo tu biblioteca…"]
-        : ["No quedan más películas con estos filtros.", h("small", {}, "Prueba otro género u otra nota mínima.")]));
+        : ["No quedan más películas con estos filtros.", h("small", {}, "Prueba otro género, otra nota mínima u otro año.")]));
       return;
     }
     stage.append(h("div", { class: "hcm-disc-back hcm-b2" }), h("div", { class: "hcm-disc-back hcm-b1" }));
