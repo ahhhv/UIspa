@@ -78,7 +78,6 @@
       frame.className = "hcm-trailer-frame";
       frame.src = `${YT}/embed/${encodeURIComponent(t.key)}?autoplay=1&rel=0&modestbranding=1&hl=es&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
       frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
-      frame.allowFullscreen = true;
       frame.title = "Tráiler";
       // se pide al reproductor que avise de los errores
       // (solo a este reproductor y cuando ya tiene cargado YouTube: si ya se ha
