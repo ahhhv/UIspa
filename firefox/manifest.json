@@ -22,6 +22,7 @@
       "media-bg.js",
       "synology-bg.js",
       "amule-bg.js",
+      "tmdb-bg.js",
       "setup-bg.js",
       "background.js"
     ]
@@ -39,7 +40,8 @@
       ],
       "css": [
         "theme.css",
-        "content.css"
+        "content.css",
+        "discover.css"
       ],
       "run_at": "document_start"
     },
@@ -65,7 +67,9 @@
       "js": [
         "content.js",
         "media.js",
-        "favorites.js"
+        "favorites.js",
+        "discover.js",
+        "trailer.js"
       ],
       "run_at": "document_idle"
     }

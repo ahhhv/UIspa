@@ -78,7 +78,42 @@
     return out;
   }
 
+  // Gustos para Descubrir: géneros, directores y décadas de tus películas (lo que
+  // has visto y lo que has puntuado alto pesa más) y la lista de las que ya tienes.
+  async function taste() {
+    const list = await activeAll();
+    const out = { configured: list.length > 0, servers: [], movies: 0, watched: 0, genres: {}, directors: {}, decades: {}, owned: [] };
+    const add = (map, k, w, seen) => {
+      if (!k) return;
+      const x = map[k] || (map[k] = { w: 0, n: 0, seen: 0 });
+      x.w += w; x.n++; if (seen) x.seen++;
+    };
+    for (const { srv, cfg } of list) {
+      let items = [];
+      try { items = await srv.catalog(cfg, "movie"); } catch (_) { continue; }
+      out.servers.push(srv.name);
+      for (const m of items) {
+        out.movies++;
+        if (m.watched) out.watched++;
+        out.owned.push([norm(m.title), norm(m.originalTitle), m.year || 0, m.imdb || ""]);
+        // visto = 3, en la biblioteca = 1; tu nota la ajusta (≥8 suma, ≤4 casi no cuenta)
+        let w = m.watched ? 3 : 1;
+        if (m.rating >= 8) w += 2; else if (m.rating && m.rating <= 4) w = 0.2;
+        for (const g of m.genres || []) add(out.genres, g, w, m.watched);
+        for (const d of (m.directors || []).slice(0, 2)) add(out.directors, d, w, m.watched);
+        if (m.year) add(out.decades, String(Math.floor(m.year / 10) * 10), w, m.watched);
+      }
+    }
+    // solo los directores con más de una película (la lista podría ser enorme)
+    for (const [k, v] of Object.entries(out.directors)) if (v.n < 2) delete out.directors[k];
+    return out;
+  }
+
   api.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg?.action === "media-taste") {
+      taste().then(sendResponse, (e) => sendResponse({ configured: true, error: e.message, genres: {}, directors: {}, decades: {}, owned: [] }));
+      return true;
+    }
     if (msg?.action === "media-lookup") {
       lookup(msg.query).then(sendResponse, (e) => sendResponse({ configured: true, results: [], error: e.message }));
       return true;

@@ -50,7 +50,8 @@
       const r = await get(cfg, "/Items", {
         Recursive: "true",
         IncludeItemTypes: kinds[type],
-        Fields: "ProviderIds,ProductionYear,OriginalTitle,Path"
+        Fields: "ProviderIds,ProductionYear,OriginalTitle,Path,Genres" + (type === "movie" ? ",People" : ""),
+        EnableUserData: "true"
       });
       const data = (r.Items || []).map((m) => ({
         id: m.Id,
@@ -58,7 +59,12 @@
         originalTitle: m.OriginalTitle,
         year: m.ProductionYear,
         imdb: (m.ProviderIds && (m.ProviderIds.Imdb || m.ProviderIds.IMDB)) || null,
-        path: m.Path || null
+        path: m.Path || null,
+        // para los gustos de Descubrir (lo visto solo llega si la clave es de un usuario)
+        genres: m.Genres || [],
+        directors: (m.People || []).filter((x) => x.Type === "Director").map((x) => x.Name),
+        watched: !!(m.UserData && (m.UserData.Played || m.UserData.PlayCount > 0)),
+        rating: null
       }));
       mem.lists.set(type, { at: Date.now(), data });
       return data;

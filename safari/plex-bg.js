@@ -68,7 +68,12 @@ globalThis.__uispaNoReach = async (url, fallback) => {
       imdb: ((m.Guid || []).map((g) => g.id).find((g) => g.startsWith("imdb://")) || "").slice(7) || null,
       resolutions: (m.Media || []).map((x) => x.videoResolution).filter(Boolean),
       files: filesOf(m),
-      section: section.key
+      section: section.key,
+      // para los gustos de Descubrir
+      genres: (m.Genre || []).map((g) => g.tag).filter(Boolean),
+      directors: (m.Director || []).map((g) => g.tag).filter(Boolean),
+      watched: Number(m.viewCount) > 0,
+      rating: Number(m.userRating) || null
     }));
     mem.lists.set(section.key, { at: Date.now(), data });
     return data;

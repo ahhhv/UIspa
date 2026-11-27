@@ -189,7 +189,9 @@
     const bar = h("header", { class: "hcm-top" },
       h("div", { class: "hcm-top-inner" },
         h("a", { class: "hcm-logo", href: "/" }, h("span", {}, "Hispa"), "Share"),
-        h("nav", { class: "hcm-nav" }, genreMenus, popular, h("div", { class: "hcm-dd" },
+        h("nav", { class: "hcm-nav" }, genreMenus, popular,
+          h("a", { class: "hcm-dd-btn hcm-discover-btn", href: "#que-veo", title: "Películas que te pueden gustar, según tu Plex o Jellyfin" }, "🎲 ¿Qué veo esta noche?"),
+          h("div", { class: "hcm-dd" },
           h("button", { type: "button", class: "hcm-dd-btn" }, "Más", h("span", { class: "hcm-caret" }, "▾")),
           h("div", { class: "hcm-dd-menu" }, menuLinks, openSettings()))),
         h("div", { class: "hcm-top-right" }, search, advBtn, account, classic)));
@@ -585,14 +587,16 @@
     a.__uispa = { title: d.title, year: d.year, type, tag: d.tag, genres: d.genres || [], rating: d.rating, poster: d.poster };
     return a;
   }
-  globalThis.__uispa = { ...(globalThis.__uispa || {}), buildCard, splitTitle };
+  // Descubrir (discover.js) lee los listados y las fichas con estas mismas funciones
+  globalThis.__uispa = { ...(globalThis.__uispa || {}), buildCard, splitTitle, rowData, listRows,
+    nextPageUrl: (pag, base) => nextPageUrl(pag, base), qualityOf, matchesPref, versionFacts };
 
   // Scroll infinito: al llegar al final se pide la página siguiente y se
   // añaden sus títulos. La paginación se queda debajo por si se desactiva.
-  function nextPageUrl(pag) {
+  function nextPageUrl(pag, base = location.href) {
     const cur = Number(txt($("span", pag))) || 1;
     const a = $$("a", pag).find((x) => Number((x.getAttribute("href").match(/page=(\d+)/) || [])[1]) === cur + 1);
-    return a ? new URL(a.getAttribute("href"), location.href).href : null;
+    return a ? new URL(a.getAttribute("href"), new URL(base, location.href)).href : null;
   }
   function infiniteScroll(view, pag, pager) {
     const grid = view.grid;

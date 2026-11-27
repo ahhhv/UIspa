@@ -319,6 +319,47 @@
     <div id="favStatus" role="status"></div>
   </section>
 
+  <section id="sec-discover">
+    <h2>¿Qué veo esta noche?</h2>
+    <p class="muted">«🎲 ¿Qué veo esta noche?», en la barra de Hispashare, te propone películas una a una según lo que tienes y has visto en Plex o Jellyfin.</p>
+    <label for="discoverAlways">Al pulsar ♥ «Lo quiero»</label>
+    <select id="discoverAlways">
+      <option value="">Preguntar cada vez</option>
+      <option value="now">Descargar ahora (eligiendo la calidad)</option>
+      <option value="later">Guardar en «Para luego»</option>
+      <option value="open">Abrir la ficha</option>
+    </select>
+
+    <h3>📋 Para luego</h3>
+    <ul id="laterList" class="fav-list"></ul>
+
+    <h3>✕ Descartadas</h3>
+    <p class="muted small">Las que pasaste con ←. No vuelven a salir en «¿Qué veo esta noche?» salvo que las recuperes.</p>
+    <ul id="nopeList" class="fav-list"></ul>
+    <div class="actions">
+      <button id="nopeClear" type="button" class="ghost">Recuperar todas</button>
+    </div>
+
+    <h3>🎬 Tráileres (TMDB, opcional)</h3>
+    <p class="muted">Con una clave gratuita de <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">TMDB</a>, la ficha lleva una imagen horizontal de fondo y el tráiler se ve sin salir de la página. Sin clave, el botón «▶ Ver tráiler» busca el tráiler en YouTube.</p>
+    <label for="tmdbKey">Clave de la API (v3) o token de lectura (v4)</label>
+    <input id="tmdbKey" type="password" autocomplete="off" spellcheck="false" placeholder="Pega aquí tu clave de TMDB">
+    <details class="help">
+      <summary>Cómo conseguir la clave</summary>
+      <ol>
+        <li>Crea una cuenta en <a href="https://www.themoviedb.org/signup" target="_blank" rel="noopener">themoviedb.org</a> (es gratis).</li>
+        <li>Ve a <b>Ajustes → API</b> y pide una clave para uso personal.</li>
+        <li>Copia la «Clave de la API» o el «Token de acceso de lectura» y pégala aquí.</li>
+      </ol>
+    </details>
+    <div class="actions">
+      <button id="tmdbSave" type="button">Probar y guardar</button>
+      <button id="tmdbRemove" type="button" class="ghost">Quitar</button>
+    </div>
+    <div id="tmdbStatus" role="status"></div>
+    <p class="muted small">La clave se guarda solo en este navegador y únicamente se envía a TMDB.</p>
+  </section>
+
   <section id="sec-done" class="wiz-only">
     <h2>¡Listo! 🎉</h2>
     <p>Así ha quedado UIspa:</p>

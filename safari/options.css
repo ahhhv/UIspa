@@ -120,3 +120,8 @@ textarea { resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, m
 .qpref fieldset { border: 1px solid var(--border, #2a3142); border-radius: 10px; padding: 8px 12px 6px; margin: 0; }
 .qpref legend { padding: 0 6px; font-weight: 600; font-size: 13px; }
 .qpref label.check { margin: 4px 0; }
+#tmdbStatus { margin-top: 10px; font-size: 14px; min-height: 1.5em; }
+#tmdbStatus.ok { color: #7ee787; }
+#tmdbStatus.err { color: #ff9a92; }
+#sec-discover h3 { margin: 26px 0 6px; font-size: 16px; }
+#sec-discover select { max-width: 420px; }

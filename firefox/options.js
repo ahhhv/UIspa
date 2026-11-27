@@ -384,10 +384,11 @@ const uiNav = (() => {
       { id: "nas", label: "NAS Synology", sec: "sec-nas", dot: (s) => !!(s.dsUrl && s.dsUser && s.dsPass) },
       { id: "remota", label: "Descarga remota", sec: "sec-amule", dot: (s) => !!s.amUrl }
     ] },
-    { id: "favoritos", label: "⭐ Favoritos", secs: ["sec-favs"] }
+    { id: "favoritos", label: "⭐ Favoritos", secs: ["sec-favs"] },
+    { id: "queveo", label: "🎲 Qué veo esta noche", secs: ["sec-discover"], dot: (s) => !!s.tmdbKey }
   ];
   TABS[2].dot = (s) => TABS[2].subs.some((x) => x.dot?.(s));
-  const KEYS = ["plexUrl", "plexToken", "jfUrl", "jfKey", "dsUrl", "dsUser", "dsPass", "amUrl"];
+  const KEYS = ["plexUrl", "plexToken", "jfUrl", "jfKey", "dsUrl", "dsUser", "dsPass", "amUrl", "tmdbKey"];
   let cur = "apariencia", sub = "local";
 
   const mk = (label, onclick) => {
@@ -867,4 +868,90 @@ const uiNav = (() => {
   });
   api.storage.onChanged.addListener((changes) => { if (Object.keys(changes).some((k) => k.startsWith(PREFIX))) render(); });
   render();
+}
+
+// ------------------------------------------------------------ ¿Qué veo esta noche? y tráileres
+{
+  const li = (kids, muted) => {
+    const x = document.createElement("li");
+    if (muted) x.className = "muted";
+    x.append(...kids);
+    return x;
+  };
+  const btn = (label, title, fn) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "ghost fav-x"; b.textContent = label; b.title = title;
+    b.addEventListener("click", fn);
+    return b;
+  };
+  const link = (x) => {
+    const a = document.createElement("a");
+    a.href = new URL(x.href || "", "https://www.hispashare.org/").href;
+    a.target = "_blank"; a.rel = "noopener";
+    a.textContent = x.title + (x.year ? ` (${x.year})` : "");
+    return a;
+  };
+  async function render() {
+    const { discoverLater: later = [], discoverNope: nope = {}, discoverPrefs: prefs = {} } = await api.storage.local.get(["discoverLater", "discoverNope", "discoverPrefs"]);
+    $("discoverAlways").value = prefs.always || "";
+    const ul = $("laterList");
+    ul.textContent = "";
+    if (!later.length) ul.append(li(["Todavía no has guardado ninguna."], true));
+    for (const x of later) ul.append(li([link(x), btn("Quitar", "Quitar de «Para luego»", async () => {
+      const { discoverLater: l = [] } = await api.storage.local.get("discoverLater");
+      await api.storage.local.set({ discoverLater: l.filter((y) => y.id !== x.id) });
+      render();
+    })]));
+    const nl = $("nopeList");
+    nl.textContent = "";
+    const list = Object.entries(nope).sort((a, b) => (b[1].t || 0) - (a[1].t || 0));
+    if (!list.length) nl.append(li(["No has descartado ninguna."], true));
+    for (const [id, x] of list) nl.append(li([link({ ...x, href: x.href || "/?view=title&id=" + id }), btn("Recuperar", "Que vuelva a salir en «¿Qué veo esta noche?»", async () => {
+      const { discoverNope: n = {} } = await api.storage.local.get("discoverNope");
+      delete n[id];
+      await api.storage.local.set({ discoverNope: n });
+      render();
+    })]));
+    $("nopeClear").disabled = !list.length;
+  }
+  $("discoverAlways").addEventListener("change", async (e) => {
+    const { discoverPrefs: p = {} } = await api.storage.local.get("discoverPrefs");
+    await api.storage.local.set({ discoverPrefs: { ...p, always: e.target.value } });
+  });
+  $("nopeClear").addEventListener("click", async () => {
+    if (!confirm("¿Recuperar todas las películas descartadas?")) return;
+    await api.storage.local.set({ discoverNope: {} });
+    render();
+  });
+  api.storage.onChanged.addListener((ch, area) => {
+    if (area === "local" && (ch.discoverLater || ch.discoverNope || ch.discoverPrefs)) render();
+  });
+  render();
+
+  // TMDB
+  const say = (msg, cls = "") => { const st = $("tmdbStatus"); st.className = cls; st.textContent = msg; };
+  api.storage.local.get("tmdbKey").then(({ tmdbKey }) => {
+    $("tmdbKey").value = tmdbKey || "";
+    if (tmdbKey) say("TMDB configurado.", "ok");
+  });
+  $("tmdbSave").addEventListener("click", async () => {
+    const key = $("tmdbKey").value.trim();
+    if (!key) { say("Pega primero tu clave de TMDB.", "err"); return; }
+    let granted = false;
+    try { granted = await api.permissions.request({ origins: ["https://api.themoviedb.org/*"] }); } catch (_) {}
+    if (!granted) { say("Sin el permiso para acceder a api.themoviedb.org no se puede usar TMDB.", "err"); return; }
+    say("Probando…");
+    const r = await api.runtime.sendMessage({ action: "tmdb-test", key }).catch((e) => ({ ok: false, error: e.message }));
+    if (!r?.ok) { say("No funciona: " + (r?.error || "error desconocido"), "err"); return; }
+    await api.storage.local.set({ tmdbKey: key });
+    api.runtime.sendMessage({ action: "tmdb-reset" }).catch(() => {});
+    say("¡Funciona! Guardado. Recarga las fichas de Hispashare que tengas abiertas.", "ok");
+  });
+  $("tmdbRemove").addEventListener("click", async () => {
+    await api.storage.local.remove("tmdbKey");
+    $("tmdbKey").value = "";
+    api.runtime.sendMessage({ action: "tmdb-reset" }).catch(() => {});
+    try { await api.permissions.remove({ origins: ["https://api.themoviedb.org/*"] }); } catch (_) {}
+    say("Clave quitada.");
+  });
 }

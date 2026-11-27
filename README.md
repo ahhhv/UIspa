@@ -176,6 +176,19 @@ Pulsa **Probar conexión** para cargar las categorías, elige una si quieres y p
 
 En Firefox, para que se sincronicen entre ordenadores tienes que tener activada la sincronización de complementos en tu cuenta de Firefox.
 
+## ¿Qué veo esta noche?
+
+El botón **🎲 ¿Qué veo esta noche?** de la barra de Hispashare te propone películas una a una, como en Tinder:
+
+- Tus gustos salen de tu **Plex o Jellyfin**: géneros, directores y décadas de tus películas. Lo que has visto y lo que has puntuado alto cuenta más. Cada carta dice por qué te la propone («has visto 4 películas de su directora…»).
+- Las cartas salen de todo el catálogo de películas de Hispashare, empezando por los géneros que más te gustan, y nunca te propone lo que ya tienes. Puedes filtrar por género y nota mínima.
+- **←** paso, **↑** favorito, **→** lo quiero (también arrastrando la carta con el ratón o el dedo). «Lo quiero» te deja descargarla ya eligiendo la calidad (NAS, descarga remota, eMule o copiar), guardarla en **📋 Para luego** o abrir la ficha. **Retroceso** deshace la última.
+- Las que pasas no vuelven a salir; en los ajustes (pestaña **🎲 Qué veo esta noche**) puedes verlas y recuperarlas, igual que la lista «Para luego».
+
+## Tráileres
+
+Cada ficha tiene un botón **▶ Ver tráiler**. Sin configurar nada, busca el tráiler en YouTube. Con una clave gratuita de [TMDB](https://www.themoviedb.org/settings/api) (ajustes → **🎲 Qué veo esta noche**), la cabecera de la ficha usa una imagen horizontal de fondo y el tráiler se ve encima de la página, en español si lo hay.
+
 ## Privacidad
 
 - UIspa no recoge ni envía datos a ningún servidor propio ni de terceros. En Firefox lo declara así en su instalación (`data_collection_permissions: none`).
@@ -192,6 +205,7 @@ En Firefox, para que se sincronicen entre ordenadores tienes que tener activada 
 | `contextMenus` | Opciones del menú del botón derecho |
 | `storage` | Guardar la configuración, la apariencia y los favoritos (en tu navegador o sincronizados con tu cuenta, según elijas) |
 | Acceso opcional a la dirección de tu servidor o NAS | Solo se pide si configuras Plex, Jellyfin, Synology o una descarga remota, y únicamente para esa dirección |
+| Acceso opcional a `api.themoviedb.org` | Solo si pones una clave de TMDB para los tráileres |
 
 ## Estructura
 
@@ -216,6 +230,8 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 | `synology-bg.js` | Envío de enlaces a Download Station y exploración de carpetas |
 | `amule-bg.js` | Envío de enlaces a la descarga remota (aMule, aMuTorrent, Rucio o Mularr) |
 | `favorites.js` | Favoritos: estrellas, fila de la portada y aviso de novedades |
+| `discover.js`, `discover.css` | ¿Qué veo esta noche? (cartas tipo Tinder) y estilos del tráiler |
+| `trailer.js`, `tmdb-bg.js` | Botón del tráiler en la ficha y conexión opcional con TMDB |
 | `setup-bg.js` | Abre el asistente de configuración al instalar |
 | `offscreen.html`, `offscreen.js` | Solo Chrome: copia al portapapeles desde segundo plano |
 | `options.html`, `options.js`, `options.css` | Página de ajustes y asistente de configuración |

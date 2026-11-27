@@ -294,15 +294,16 @@
   const safeName = (t) => String(t || "").replace(/[\\/:*?"<>|,]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
 
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
-  async function pickFolder(anchor) {
+  // opts.info: datos del título cuando no es el de la página (Descubrir)
+  async function pickFolder(anchor, opts = {}) {
     if (proxyAnchor?.isConnected) anchor = proxyAnchor;
     openPop?.cancel();
     let st = {};
     try { st = (await api.runtime.sendMessage({ action: "ds-status" })) || {}; } catch (_) {}
-    const series = seriesOfPage();
+    const series = opts.info ? null : seriesOfPage();
     const saved = await seriesFolder(series);
     // Carpeta según Plex / Jellyfin: se pide ya y llega mientras el recuadro está abierto
-    const info = globalThis.__uispaTitleInfo?.() || null;
+    const info = opts.info || globalThis.__uispaTitleInfo?.() || null;
     const sugP = info ? api.runtime.sendMessage({ action: "ds-suggest", query: info }).catch(() => null) : Promise.resolve(null);
     let maxRecent = 6;
     try { const { dsRecentMax } = await api.storage.local.get("dsRecentMax"); if (Number.isInteger(dsRecentMax)) maxRecent = dsRecentMax; } catch (_) {}
@@ -954,4 +955,32 @@
   });
 
   window.__hcDebug = { findGroups, fetchLinks, copyAllPage, copySelectedPage, cache };
+
+  // Para Descubrir (discover.js): mandar enlaces sueltos con los mismos avisos
+  // y el mismo recuadro de carpetas del NAS que los botones de las fichas.
+  globalThis.__uispaSend = {
+    status: () => ({ nas: nasOn, remote: amOn, emule: emuleOn }),
+    copy: (links, what = "") => copyLinks(links, what, true),
+    emule: (links) => emuleStart(links, null),
+    async nas(links, info, anchor) {
+      const dest = await pickFolder(anchor || document.body, { info });
+      if (dest === null) return false;
+      try {
+        const r = await api.runtime.sendMessage({ action: "ds-add", links, dest });
+        if (r?.ok) { toast(`📥 ${r.count === 1 ? "Enviado 1 enlace" : `Enviados ${r.count} enlaces`} a Download Station${r.destination ? " · " + r.destination : ""}`); return true; }
+        toast("Download Station: " + (r?.error || "no se pudo enviar"), true);
+      } catch (e) { toast("Error al enviar a Download Station: " + e.message, true); }
+      return false;
+    },
+    async remote(links) {
+      try {
+        const r = await api.runtime.sendMessage({ action: "am-add", links });
+        const who = r?.target || "la descarga remota";
+        if (!r?.ok) { toast(`${who}: ` + (r?.error || "no se pudo enviar"), true); return false; }
+        if (!r.count) { toast(`${who} no ha añadido nada: ` + (r.error || "los enlaces ya estaban en la lista"), true); return false; }
+        toast(`🐳 ${r.count === 1 ? "Enviado 1 enlace" : `Enviados ${r.count} enlaces`} a ${who}`);
+        return true;
+      } catch (e) { toast("Error al enviar a la descarga remota: " + e.message, true); return false; }
+    }
+  };
 })();
