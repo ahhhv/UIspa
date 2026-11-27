@@ -64,6 +64,8 @@ html.hcm .hcm-disc-act:hover i, html.hcm .hcm-disc-act:focus-visible i { transfo
 html.hcm .hcm-disc-no i { color: #f85149; border-color: #f85149; }
 html.hcm .hcm-disc-fav i { color: #f5b301; border-color: #f5b301; width: 56px; height: 56px; font-size: 24px; }
 html.hcm .hcm-disc-yes i { color: #3fb950; border-color: #3fb950; background: rgba(63,185,80,.12); }
+html.hcm .hcm-disc-back-btn i { color: var(--muted); width: 52px; height: 52px; font-size: 22px; }
+html.hcm .hcm-disc-back-btn[disabled] { opacity: .35; cursor: default; }
 html.hcm .hcm-disc-act kbd, html.hcm .hcm-disc-opt kbd { font: 12px monospace; background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; color: var(--plot); }
 
 @media (max-width: 720px) {

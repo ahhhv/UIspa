@@ -62,7 +62,8 @@
   // discoverPrefs: { genre, minRating, always: "" | "now" | "later" | "open" }
   let later = [], nope = {}, prefs = { genre: "", minRating: 0, always: "" }, qpref = null;
   async function loadStore() {
-    const r = await api.storage.local.get(["discoverLater", "discoverNope", "discoverPrefs", "qualityPref"]);
+    const r = await api.storage.local.get(["discoverLater", "discoverNope", "discoverPrefs", "qualityPref", "discoverUndo"]);
+    if (!undoList.length && Array.isArray(r.discoverUndo)) undoList = r.discoverUndo.filter((x) => x?.d?.href);
     later = Array.isArray(r.discoverLater) ? r.discoverLater : [];
     nope = r.discoverNope && typeof r.discoverNope === "object" ? r.discoverNope : {};
     prefs = { ...prefs, ...(r.discoverPrefs || {}) };
@@ -243,7 +244,7 @@
     }
   }
 
-  let queue = [], seen = new Set(), filling = null;
+  let queue = [], seen = new Set(), filling = null, emptyRuns = 0;
   const isLater = (d) => later.some((x) => x.href === d.href || x.id === titleId(d.href));
   function acceptable(d) {
     const id = titleId(d.href);
@@ -258,6 +259,7 @@
       // se buscan cartas hasta tener unas cuantas que se parezcan a algo tuyo;
       // las que no se parecen a nada se quedan para el final
       const good = () => queue.filter((x) => x.sim.length).length;
+      let added = 0;
       while ((good() < 6 || queue.length < 8) && tries++ < 12) {
         const src = pickSource();
         if (!src) break;
@@ -267,18 +269,35 @@
           const c = { ...d, poster: d.poster ? abs(d.poster) : "", ...judge(d) };
           c.score = scoreOf(c);
           queue.push(c);
+          added++;
           askTmdb(c);
         }
         queue.sort(byScore);
         if (open && !current) next();
       }
+      emptyRuns = added ? 0 : emptyRuns + 1;
     })().finally(() => { filling = null; if (open) paint(); });
     return filling;
   }
 
   // ------------------------------------------------------------ pantalla
-  let open = false, view, stage, laterBtn, undoBtn, notice, current = null, modal = null;
-  const undoList = [];   // { kind: "no" | "fav" | "later" | "yes", d }
+  let open = false, view, stage, laterBtn, notice, current = null, modal = null;
+  // Historial para volver atrás (sin límite práctico; se guarda para que siga
+  // ahí aunque recargues): { kind: "no" | "fav" | "later" | "yes", d }
+  let undoList = [];
+  const UNDO_MAX = 500;
+  const slim = (d) => ({ href: d.href, title: d.title, year: d.year, type: d.type, tag: d.tag, genres: d.genres, allGenres: d.allGenres,
+    director: d.director, rating: d.rating, poster: d.poster, synopsis: d.synopsis, quality: d.quality, last: d.last });
+  const saveUndo = () => api.storage.local.set({ discoverUndo: undoList.slice(-UNDO_MAX).map((x) => ({ kind: x.kind, d: slim(x.d) })) }).catch(() => {});
+  function pushUndo(kind, d) { undoList.push({ kind, d }); saveUndo(); }
+  // una carta guardada vuelve con su «se parece a…» recalculado
+  function revive(d) {
+    if (d.sim) return d;
+    const c = { ...d, ...judge(d) };
+    c.score = scoreOf(c);
+    askTmdb(c);
+    return c;
+  }
 
   function build() {
     const genreSel = h("select", { class: "hcm-disc-genre", "aria-label": "Género", onchange: (e) => { prefs.genre = e.target.value; savePrefs(); restart(); } },
@@ -290,7 +309,6 @@
       rates.map(([v, l]) => h("button", { type: "button", class: "hcm-disc-chip", "data-v": String(v),
         onclick: () => { prefs.minRating = v; savePrefs(); restart(); } }, l)));
     laterBtn = h("button", { type: "button", class: "hcm-disc-later", onclick: () => showLater() });
-    undoBtn = h("button", { type: "button", class: "hcm-disc-undo", title: "Deshacer la última (Retroceso)", onclick: () => undo() }, "↶ Deshacer");
     notice = h("p", { class: "hcm-disc-notice", hidden: true });
     stage = h("div", { class: "hcm-disc-stage" });
     const btn = (cls, icon, label, key, fn) => h("button", { type: "button", class: "hcm-disc-act " + cls, onclick: fn },
@@ -298,10 +316,11 @@
     view = h("section", { class: "hcm-disc", "aria-label": "¿Qué veo esta noche?" },
       h("div", { class: "hcm-disc-head" },
         h("h1", {}, "🎲 ¿Qué veo esta noche?"), genreSel, rateBox,
-        h("div", { class: "hcm-disc-spacer" }), undoBtn, laterBtn,
+        h("div", { class: "hcm-disc-spacer" }), laterBtn,
         h("button", { type: "button", class: "hcm-disc-close", title: "Cerrar (Esc)", onclick: () => close() }, "✕")),
       notice, stage,
       h("div", { class: "hcm-disc-acts" },
+        btn("hcm-disc-back-btn", "↶", "Atrás", "Retroceso", () => undo()),
         btn("hcm-disc-no", "✕", "Paso", "←", () => decide("no")),
         btn("hcm-disc-fav", "★", "Favorito", "↑", () => decide("fav")),
         btn("hcm-disc-yes", "♥", "Lo quiero", "→", () => decide("yes"))));
@@ -311,7 +330,8 @@
     if (!view) return;
     laterBtn.textContent = "";
     laterBtn.append("📋 Para luego ", h("b", {}, String(later.length)));
-    undoBtn.disabled = !undoList.length;
+    const bb = view.querySelector(".hcm-disc-back-btn");
+    if (bb) { bb.disabled = !undoList.length; bb.title = undoList.length ? `Volver a «${undoList[undoList.length - 1].d.title}»` : "No hay nada a lo que volver"; }
     $$(".hcm-disc-chip", view).forEach((b) => b.classList.toggle("hcm-on", Number(b.dataset.v) === Number(prefs.minRating || 0)));
   }
 
@@ -364,7 +384,15 @@
     if (current && stage.querySelector(".hcm-disc-card:not(.hcm-out)")?.__d === current) return;
     stage.querySelectorAll(".hcm-disc-card:not(.hcm-out), .hcm-disc-empty, .hcm-disc-back").forEach((x) => x.remove());
     if (!current) {
-      const busy = !!filling || !taste;
+      const more = !sources.length || !!pickSource();
+      // muchas páginas seguidas sin nada que encaje: se para y te pregunta
+      if (taste && !filling && more && emptyRuns >= 3) {
+        stage.append(h("div", { class: "hcm-disc-empty" }, "No encuentro más películas con estos filtros por ahora.",
+          h("button", { type: "button", class: "hcm-disc-sendbtn", onclick: () => { emptyRuns = 0; fill(); paint(); } }, "Seguir buscando")));
+        return;
+      }
+      const busy = !!filling || !taste || more;
+      if (taste && !filling && sources.length && more) setTimeout(fill, 0);
       stage.append(h("div", { class: "hcm-disc-empty" }, busy
         ? [h("div", { class: "hcm-disc-spin" }), taste ? "Buscando películas para ti…" : "Leyendo tu biblioteca…"]
         : ["No quedan más películas con estos filtros.", h("small", {}, "Prueba otro género u otra nota mínima.")]));
@@ -381,7 +409,7 @@
     if (queue.length < 4) fill();
   }
   function restart() {
-    queue = []; current = null; seen = new Set(); buildSources(); paint(); fill();
+    queue = []; current = null; seen = new Set(); emptyRuns = 0; buildSources(); paint(); fill();
   }
 
   // Arrastrar la carta (ratón o dedo)
@@ -435,21 +463,21 @@
     if (kind === "no") {
       nope[id] = { title: d.title, year: d.year || "", poster: d.poster || "", href: d.href, t: Date.now() };
       saveNope();
-      undoList.push({ kind, d });
+      pushUndo(kind, d);
       next();
     } else if (kind === "fav") {
       await addFav(d);
       toast("★ Añadida a favoritos");
-      undoList.push({ kind, d });
+      pushUndo(kind, d);
       next();
     } else {
-      undoList.push({ kind: "yes", d });
+      pushUndo("yes", d);
       next();
       const how = prefs.always || await ask(d);
-      if (!how) { undoList.pop(); if (current) queue.unshift(current); current = d; paint(); return; } // cancelado: vuelve
+      if (!how) return putBack(d);                        // cerraste la pregunta: la carta vuelve
       if (how === "later") addLater(d);
       else if (how === "open") window.open(abs(d.href), "_blank", "noopener");
-      else chooser(d);
+      else chooser(d, () => putBack(d));                  // cerraste sin descargar: vuelve
     }
     paintHead();
   }
@@ -458,20 +486,36 @@
     later.unshift({ id: titleId(d.href), href: d.href, title: d.title, year: d.year || "", poster: d.poster || "", rating: d.rating || null, quality: d.quality || "", added: Date.now() });
     saveLater();
     undoList[undoList.length - 1] = { kind: "later", d };
+    saveUndo();
     toast("📋 Guardada para luego");
     paintHead();
   }
+  // Volver a la carta anterior, deshaciendo lo que hiciste con ella (se puede
+  // repetir hasta el principio). Lo que ya descargaste no se deshace.
   async function undo() {
+    if (modal || !undoList.length) return;
     const last = undoList.pop();
-    if (!last || modal) { if (last) undoList.push(last); return; }
+    saveUndo();
     const id = titleId(last.d.href);
     if (last.kind === "no") { delete nope[id]; saveNope(); }
     else if (last.kind === "fav") await removeFav(last.d);
     else if (last.kind === "later") { later = later.filter((x) => x.id !== id); saveLater(); }
-    if (current) queue.unshift(current);
-    current = last.d;
+    show_(revive(last.d));
+  }
+  // La carta d vuelve al frente (la que estaba se queda la siguiente)
+  function show_(d) {
+    queue = queue.filter((x) => x.href !== d.href);
+    if (current && current !== d) queue.unshift(current);
+    current = d;
+    seen.add(titleId(d.href));
     stage.querySelectorAll(".hcm-disc-card").forEach((x) => x.remove());
     paint();
+  }
+  function putBack(d) {
+    const i = undoList.map((x) => x.d).lastIndexOf(d);
+    if (i >= 0) { undoList.splice(i, 1); saveUndo(); }
+    show_(d);
+    paintHead();
   }
 
   // ------------------------------------------------------------ ventanas
@@ -556,12 +600,14 @@
   }
 
   // Elegir calidad y mandarla
-  async function chooser(d) {
+  async function chooser(d, onCancel) {
+    let sent = false;
     const s = globalThis.__uispaSend?.status?.() || {};
     const list = h("div", { class: "hcm-disc-vers" }, h("div", { class: "hcm-disc-loading" }, h("div", { class: "hcm-disc-spin" }), "Leyendo las versiones…"));
     const acts = h("div", { class: "hcm-disc-send" });
     const box = openModal([h("h3", {}, `📥 «${d.title}»`), h("p", {}, "Elige la calidad:"), list, acts,
-      h("a", { class: "hcm-disc-link", href: abs(d.href), target: "_blank", rel: "noopener" }, "Abrir la ficha ↗")]);
+      h("a", { class: "hcm-disc-link", href: abs(d.href), target: "_blank", rel: "noopener" }, "Abrir la ficha ↗")],
+      () => { if (!sent) onCancel?.(); });
     box.dataset.kind = "chooser";
     let data;
     try { data = await titleData(d); } catch (e) { list.textContent = "No se pudo leer la ficha: " + e.message; return; }
@@ -579,6 +625,7 @@
         v.pref ? h("em", {}, "Tu calidad") : null));
     });
     const done = () => {
+      sent = true;
       const id = titleId(d.href);
       if (later.some((x) => x.id === id)) { later = later.filter((x) => x.id !== id); saveLater(); }
       closeModal();

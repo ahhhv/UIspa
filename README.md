@@ -182,7 +182,7 @@ El botón **🎲 ¿Qué veo esta noche?** de la barra de Hispashare te propone p
 
 - Tus gustos salen de tu **Plex o Jellyfin**: géneros, directores y décadas de tus películas. Lo que has visto y lo que has puntuado alto cuenta más. Cada carta te dice a qué películas tuyas se parece («Se parece a Hero (2002) y Tigre y dragón (2000), que has visto»): con clave de TMDB, según sus recomendaciones; sin ella, las de tu biblioteca del mismo director o de los mismos géneros y época. Primero salen las que se parecen a algo tuyo.
 - Las cartas salen de todo el catálogo de películas de Hispashare, empezando por los géneros que más te gustan, y nunca te propone lo que ya tienes. Puedes filtrar por género y nota mínima.
-- **←** paso, **↑** favorito, **→** lo quiero (también arrastrando la carta con el ratón o el dedo). «Lo quiero» te deja descargarla ya eligiendo la calidad (NAS, descarga remota, eMule o copiar), guardarla en **📋 Para luego** o abrir la ficha. **Retroceso** deshace la última.
+- **←** paso, **↑** favorito, **→** lo quiero (también arrastrando la carta con el ratón o el dedo). «Lo quiero» te deja descargarla ya eligiendo la calidad (NAS, descarga remota, eMule o copiar), guardarla en **📋 Para luego** o abrir la ficha. **↶ Atrás** (o Retroceso) vuelve a la carta anterior deshaciendo lo que hiciste con ella, tantas veces como quieras, aunque recargues la página. Si cierras sin descargar, la película vuelve.
 - Las que pasas no vuelven a salir; en los ajustes (pestaña **🎲 Qué veo esta noche**) puedes verlas y recuperarlas, igual que la lista «Para luego».
 
 ## Tráileres
