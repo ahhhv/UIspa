@@ -23,11 +23,17 @@
     return res.json();
   }
 
-  // El tráiler: en español si lo hay; si no, en inglés. Oficial y de YouTube primero.
-  function pickVideo(list) {
-    const yt = (list || []).filter((v) => v.site === "YouTube" && v.key);
-    const rank = (v) => (v.type === "Trailer" ? 4 : v.type === "Teaser" ? 2 : 0) + (v.official ? 1 : 0);
-    return yt.sort((a, b) => rank(b) - rank(a))[0] || null;
+  // Todos los tráileres de YouTube, ordenados: español de España, español,
+  // inglés, el resto; dentro de cada uno, tráiler > teaser > otros, oficial primero.
+  // Se devuelven varios porque algunos vídeos están bloqueados en España o no se
+  // dejan ver fuera de YouTube: si uno falla, la ficha prueba el siguiente.
+  function rankVideos(list) {
+    const seen = new Set();
+    const yt = (list || []).filter((v) => v.site === "YouTube" && v.key && !seen.has(v.key) && seen.add(v.key));
+    const langScore = (v) => v.iso_639_1 === "es" ? (v.iso_3166_1 === "ES" ? 30 : 20) : v.iso_639_1 === "en" ? 10 : 0;
+    const typeScore = (v) => (v.type === "Trailer" ? 4 : v.type === "Teaser" ? 2 : 0) + (v.official ? 1 : 0);
+    return yt.sort((a, b) => (langScore(b) + typeScore(b)) - (langScore(a) + typeScore(a)))
+      .slice(0, 8).map((v) => ({ key: v.key, name: v.name, lang: v.iso_639_1 === "es" ? "es" : v.iso_639_1 || "" }));
   }
 
   async function info(q) {
@@ -55,16 +61,16 @@
     }
     let data = { configured: true, found: false };
     if (item) {
-      let video = null, lang = "es";
-      for (const l of ["es-ES", "en-US"]) {
-        const v = await call(key, `/${kind}/${item.id}/videos`, { language: l }).catch(() => null);
-        video = pickVideo(v?.results);
-        if (video) { lang = l.slice(0, 2); break; }
-      }
+      const [es, all] = await Promise.all([
+        call(key, `/${kind}/${item.id}/videos`, { language: "es-ES" }).catch(() => null),
+        call(key, `/${kind}/${item.id}/videos`, { include_video_language: "es,en,null" }).catch(() => null)
+      ]);
+      const trailers = rankVideos([...(es?.results || []), ...(all?.results || [])]);
       data = {
         configured: true, found: true,
         backdrop: item.backdrop_path ? "https://image.tmdb.org/t/p/w1280" + item.backdrop_path : null,
-        trailer: video ? { key: video.key, name: video.name, lang } : null,
+        trailer: trailers[0] || null,
+        trailers,
         url: `https://www.themoviedb.org/${kind}/${item.id}`
       };
     }
