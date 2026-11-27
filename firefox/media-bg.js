@@ -82,7 +82,7 @@
   // has visto y lo que has puntuado alto pesa más) y la lista de las que ya tienes.
   async function taste() {
     const list = await activeAll();
-    const out = { configured: list.length > 0, servers: [], movies: 0, watched: 0, genres: {}, directors: {}, decades: {}, owned: [] };
+    const out = { configured: list.length > 0, servers: [], movies: 0, watched: 0, genres: {}, directors: {}, decades: {}, owned: [], items: [] };
     const add = (map, k, w, seen) => {
       if (!k) return;
       const x = map[k] || (map[k] = { w: 0, n: 0, seen: 0 });
@@ -96,6 +96,8 @@
         out.movies++;
         if (m.watched) out.watched++;
         out.owned.push([norm(m.title), norm(m.originalTitle), m.year || 0, m.imdb || ""]);
+        // para «se parece a…»: título, año, géneros, directores, visto y tu nota
+        out.items.push([m.title, m.year || 0, m.genres || [], (m.directors || []).slice(0, 2), m.watched ? 1 : 0, m.rating || 0, m.originalTitle || ""]);
         // visto = 3, en la biblioteca = 1; tu nota la ajusta (≥8 suma, ≤4 casi no cuenta)
         let w = m.watched ? 3 : 1;
         if (m.rating >= 8) w += 2; else if (m.rating && m.rating <= 4) w = 0.2;

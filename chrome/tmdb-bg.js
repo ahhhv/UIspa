@@ -72,7 +72,46 @@
     return data;
   }
 
+  // Películas recomendadas por TMDB para una película (para «se parece a…» de
+  // ¿Qué veo esta noche?): se cruzan después con tu biblioteca.
+  const simMem = new Map();
+  async function similar(q) {
+    const { tmdbKey } = await api.storage.local.get("tmdbKey");
+    const key = String(tmdbKey || "").trim();
+    if (!key) return { configured: false, list: [] };
+    const id = q.imdb || `${q.title}:${q.year}`;
+    const hit = simMem.get(id);
+    if (hit && Date.now() - hit.at < TTL) return hit.data;
+    let tid = null;
+    if (q.imdb) tid = (await call(key, `/find/${q.imdb}`, { external_source: "imdb_id" }).catch(() => null))?.movie_results?.[0]?.id || null;
+    if (!tid && q.title) {
+      const r = await call(key, "/search/movie", { query: q.title, language: "es-ES", ...(q.year ? { year: q.year } : {}) });
+      const res = r.results || [];
+      tid = (res.find((x) => q.year && String(x.release_date || "").startsWith(String(q.year))) || res[0])?.id || null;
+    }
+    let list = [];
+    if (tid) {
+      const [a, b] = await Promise.all([
+        call(key, `/movie/${tid}/recommendations`, { language: "es-ES" }).catch(() => null),
+        call(key, `/movie/${tid}/similar`, { language: "es-ES" }).catch(() => null)
+      ]);
+      const seen = new Set();
+      for (const r of [...(a?.results || []), ...(b?.results || [])]) {
+        if (seen.has(r.id)) continue;
+        seen.add(r.id);
+        list.push({ t: r.title || "", o: r.original_title || "", y: Number(String(r.release_date || "").slice(0, 4)) || 0 });
+      }
+    }
+    const data = { configured: true, found: !!tid, list };
+    simMem.set(id, { at: Date.now(), data });
+    return data;
+  }
+
   api.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg?.action === "tmdb-similar") {
+      similar(msg.query || {}).then(sendResponse, (e) => sendResponse({ configured: true, error: e.message, list: [] }));
+      return true;
+    }
     if (msg?.action === "tmdb-info") {
       info(msg.query || {}).then(sendResponse, (e) => sendResponse({ configured: true, error: e.message }));
       return true;
@@ -81,6 +120,6 @@
       call(String(msg.key || "").trim(), "/configuration").then(() => sendResponse({ ok: true }), (e) => sendResponse({ ok: false, error: e.message }));
       return true;
     }
-    if (msg?.action === "tmdb-reset") { mem.clear(); sendResponse({ ok: true }); }
+    if (msg?.action === "tmdb-reset") { mem.clear(); simMem.clear(); sendResponse({ ok: true }); }
   });
 })();

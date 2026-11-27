@@ -4,7 +4,8 @@
 html.hcm .hcm-discover-btn { white-space: nowrap; text-decoration: none; color: var(--accent) !important; font-weight: 600; }
 html.hcm.hcm-disc-open #hcm-root > .hcm-main,
 html.hcm.hcm-disc-open #hcm-root > .hcm-footer { display: none !important; }
-html.hcm .hcm-disc { max-width: var(--maxw); margin: 0 auto; padding: 22px 24px 30px; min-height: calc(100vh - 70px); display: flex; flex-direction: column; }
+html.hcm .hcm-disc { max-width: var(--maxw); margin: 0 auto; padding: 22px 24px 30px; display: flex; flex-direction: column; overflow-x: clip; }
+html.hcm.hcm-disc-open body { overflow-x: hidden; }
 html.hcm .hcm-disc[hidden] { display: none; }
 html.hcm .hcm-disc-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 html.hcm .hcm-disc-head h1 { font-size: 26px; margin: 0 14px 0 0; color: var(--text); }
@@ -21,7 +22,7 @@ html.hcm .hcm-disc-close { width: 34px; height: 34px; padding: 0; display: inlin
 html.hcm .hcm-disc-chip:focus-visible, html.hcm .hcm-disc-later:focus-visible, html.hcm .hcm-disc-undo:focus-visible, html.hcm .hcm-disc-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 html.hcm .hcm-disc-notice { margin: 14px 0 0; padding: 10px 14px; border-radius: 10px; background: var(--tint); border: 1px solid var(--border); color: var(--muted); font-size: 14px; }
 
-html.hcm .hcm-disc-stage { position: relative; flex: 1; min-height: 470px; margin: 18px auto 0; width: min(780px, 100%); }
+html.hcm .hcm-disc-stage { position: relative; flex: none; height: 480px; margin: 18px auto 0; width: min(780px, 100%); }
 html.hcm .hcm-disc-card, html.hcm .hcm-disc-back { position: absolute; left: 0; right: 0; top: 0; height: 450px; border-radius: 22px;
   background: var(--surface); border: 1px solid var(--border); box-shadow: 0 30px 80px var(--shadow); }
 html.hcm .hcm-disc-back.hcm-b1 { transform: translateY(14px) scale(.96); opacity: .55; }
@@ -72,7 +73,7 @@ html.hcm .hcm-disc-act kbd, html.hcm .hcm-disc-opt kbd { font: 12px monospace; b
   html.hcm .hcm-disc-body { padding: 16px 18px; gap: 8px; }
   html.hcm .hcm-disc-body h2 { font-size: 24px; }
   html.hcm .hcm-disc-syn { -webkit-line-clamp: 3; }
-  html.hcm .hcm-disc-stage { min-height: 580px; }
+  html.hcm .hcm-disc-stage { height: 590px; }
 }
 
 /* ventanas de Descubrir (fuera de #hcm-root, por encima de todo) */

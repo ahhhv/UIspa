@@ -37,7 +37,6 @@
     .replace(/\(.*?\)/g, " ").replace(/&/g, " y ").replace(/[^a-z0-9]+/g, " ").trim();
   const titleId = (href) => (String(href || "").match(/[?&]id=(\d+)/) || [])[1] || null;
   const abs = (u) => { try { return new URL(u, location.href).href; } catch (_) { return u || ""; } };
-  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   const toast = (msg, err = false) => {
     let t = document.getElementById("hc-toast");
     if (!t) { t = h("div", { id: "hc-toast" }); html.append(t); }
@@ -113,40 +112,90 @@
     const totalD = Object.values(r?.decades || {}).reduce((a, x) => a + x.w, 0) || 1;
     for (const [dec, x] of Object.entries(r?.decades || {})) t.decades[dec] = { ...x, share: x.w / totalD };
     for (const [ti, or, y] of r?.owned || []) for (const yy of [y - 1, y, y + 1]) { if (ti) t.owned.add(ti + "|" + yy); if (or) t.owned.add(or + "|" + yy); }
+    // tus películas, para «se parece a…»
+    t.lib = (r?.items || []).map(([title, year, genres, dirs, watched, rating, orig]) => ({
+      title, year, watched: !!watched, rating, gs: new Set(genres.map(canon)), ds: new Set(dirs.map(norm)), keys: [norm(title), norm(orig)].filter(Boolean)
+    }));
+    t.anyWatched = t.lib.some((m) => m.watched);
+    t.index = new Map();
+    for (const m of t.lib) for (const k of m.keys) for (const yy of [m.year - 1, m.year, m.year + 1]) if (!t.index.has(k + "|" + yy)) t.index.set(k + "|" + yy, m);
+    try { t.tmdb = !!(await api.storage.local.get("tmdbKey")).tmdbKey; } catch (_) { t.tmdb = false; }
     taste = t;
   }
   const owned = (d) => taste?.owned.has(norm(d.title) + "|" + (Number(d.year) || 0));
 
-  // Puntuación y el «porque…» de cada carta
+  // Puntuación de cada carta: tus gustos (géneros, director, década, nota) y,
+  // sobre todo, si se parece a películas tuyas.
+  const dirsOf = (d) => String(d.director || "").split(/\s*,\s*|\s+y\s+/).map((x) => norm(x)).filter(Boolean);
+  const genresOf = (d) => new Set((d.allGenres?.length ? d.allGenres : d.genres || []).map(canon));
   function judge(d) {
     const T = taste || { genres: {}, directors: {}, decades: {} };
-    const why = [];
-    let score = 0, best = null;
-    for (const c of new Set((d.allGenres?.length ? d.allGenres : d.genres || []).map(canon))) {
-      const g = T.genres[c];
-      if (!g) continue;
-      score += g.share * 2;
-      if (!best || g.share > best.share) best = g;
-    }
-    const dirs = String(d.director || "").split(/\s*,\s*|\s+y\s+/).map((x) => x.trim()).filter(Boolean);
-    const dir = dirs.map((x) => T.directors[norm(x)]).find(Boolean);
-    if (dir) {
-      score += 0.6 + Math.min(dir.n, 5) * 0.05;
-      why.push(dir.seen ? `has visto ${plural(dir.seen, "película", "películas")} de ${dir.name}` : `tienes ${plural(dir.n, "película", "películas")} de ${dir.name}`);
-    }
-    if (best && best.share >= 0.04) {
-      const g = best.label.toLowerCase();
-      why.push(best.seen >= 2 ? `has visto ${best.seen} películas de ${g}` : `tienes ${best.n} películas de ${g}`);
-    }
+    let base = 0;
+    for (const c of genresOf(d)) if (T.genres[c]) base += T.genres[c].share * 2;
+    const dir = dirsOf(d).map((x) => T.directors[x]).find(Boolean);
+    if (dir) base += 0.6 + Math.min(dir.n, 5) * 0.05;
     const dec = d.year ? T.decades[String(Math.floor(Number(d.year) / 10) * 10)] : null;
-    if (dec) {
-      score += dec.share * 0.6;
-      if (dec.share >= 0.25 && why.length < 2) why.push(`te van las de los ${String(Math.floor(Number(d.year) / 10) * 10).slice(2)}`);
-    }
+    if (dec) base += dec.share * 0.6;
     const r = Number(d.rating);
-    if (r) score += (r - 6) * 0.15;
-    score += Math.random() * 0.15; // un poco de variedad
-    return { score, why: why.slice(0, 2) };
+    if (r) base += (r - 6) * 0.15;
+    base += Math.random() * 0.15; // un poco de variedad
+    return { base, ...localSimilar(d) };
+  }
+  // Plan B (sin TMDB): de tu biblioteca, las del mismo director o, si no hay,
+  // las que comparten todos sus géneros y son de una época parecida.
+  // Si Plex sabe lo que has visto, solo cuentan las vistas.
+  function localSimilar(d) {
+    const T = taste;
+    if (!T?.lib?.length) return { sim: [], simKind: "" };
+    const pool = T.anyWatched ? T.lib.filter((m) => m.watched) : T.lib;
+    const ds = dirsOf(d);
+    const byDir = pool.filter((m) => ds.some((x) => m.ds.has(x)));
+    if (byDir.length) return { sim: rank(byDir, d).slice(0, 3), simKind: "dir" };
+    const gs = [...genresOf(d)];
+    if (!gs.length) return { sim: [], simKind: "" };
+    const y = Number(d.year) || 0;
+    const byGenre = pool.filter((m) => gs.every((g) => m.gs.has(g)) && (!y || !m.year || Math.abs(m.year - y) <= 12));
+    return byGenre.length ? { sim: rank(byGenre, d).slice(0, 3), simKind: "genre" } : { sim: [], simKind: "" };
+  }
+  // las más cercanas en el tiempo, y las que más te gustaron
+  function rank(list, d) {
+    const y = Number(d.year) || 0;
+    const sc = (m) => (m.rating >= 8 ? 2 : 0) + (m.watched ? 1 : 0) - (y && m.year ? Math.abs(m.year - y) / 8 : 0);
+    return [...list].sort((a, b) => sc(b) - sc(a));
+  }
+  // Orden: primero las que se parecen a algo tuyo (las de TMDB, las más fiables)
+  const scoreOf = (d) => d.base + (d.simKind === "tmdb" ? 3 + d.sim.length * 0.5 : d.simKind === "dir" ? 2.5 : d.simKind === "genre" ? 1.5 : 0);
+  const byScore = (a, b) => (!!b.sim.length - !!a.sim.length) || (b.score - a.score);
+
+  // TMDB: películas recomendadas para la de la carta, cruzadas con tu biblioteca
+  const tmdbQueue = [];
+  let tmdbBusy = 0;
+  function askTmdb(d) {
+    if (!taste?.tmdb || d.tmdbAsked) return;
+    d.tmdbAsked = true;
+    tmdbQueue.push(d);
+    pumpTmdb();
+  }
+  function pumpTmdb() {
+    while (tmdbBusy < 3 && tmdbQueue.length) {
+      const d = tmdbQueue.shift();
+      tmdbBusy++;
+      api.runtime.sendMessage({ action: "tmdb-similar", query: { title: d.title, year: Number(d.year) || null } })
+        .then((r) => {
+          if (r?.configured === false) { taste.tmdb = false; return; }
+          const found = [];
+          for (const x of r?.list || []) {
+            const m = [x.t, x.o].map(norm).filter(Boolean).map((k) => taste.index.get(k + "|" + x.y)).find(Boolean);
+            if (m && !found.includes(m)) found.push(m);
+            if (found.length >= 3) break;
+          }
+          if (!found.length) return;
+          d.sim = found; d.simKind = "tmdb"; d.score = scoreOf(d);
+          queue.sort(byScore);
+          if (d === current) refreshWhy();
+        }, () => {})
+        .finally(() => { tmdbBusy--; pumpTmdb(); });
+    }
   }
 
   // ------------------------------------------------------------ catálogo
@@ -206,15 +255,21 @@
     if (filling) return filling;
     filling = (async () => {
       let tries = 0;
-      while (queue.length < 8 && tries++ < 12) {
+      // se buscan cartas hasta tener unas cuantas que se parezcan a algo tuyo;
+      // las que no se parecen a nada se quedan para el final
+      const good = () => queue.filter((x) => x.sim.length).length;
+      while ((good() < 6 || queue.length < 8) && tries++ < 12) {
         const src = pickSource();
         if (!src) break;
         for (const d of await loadFrom(src)) {
           if (!acceptable(d)) continue;
           seen.add(titleId(d.href));
-          queue.push({ ...d, poster: d.poster ? abs(d.poster) : "", ...judge(d) });
+          const c = { ...d, poster: d.poster ? abs(d.poster) : "", ...judge(d) };
+          c.score = scoreOf(c);
+          queue.push(c);
+          askTmdb(c);
         }
-        queue.sort((a, b) => b.score - a.score);
+        queue.sort(byScore);
         if (open && !current) next();
       }
     })().finally(() => { filling = null; if (open) paint(); });
@@ -272,12 +327,34 @@
           d.rating ? h("span", { class: "hcm-disc-rate" }, "★ " + String(d.rating).replace(".", ",")) : null,
           (d.genres || []).length ? h("span", {}, d.genres.join(" · ")) : null,
           d.director ? h("span", { class: "hcm-disc-dir" }, "Dir. " + d.director) : null),
-        d.why?.length ? h("div", { class: "hcm-disc-why" }, "Te la propongo porque ", d.why.map((w, i) => [i ? " y " : "", h("b", {}, w)]), ".") : null,
+        whyBox(d),
         d.synopsis ? h("p", { class: "hcm-disc-syn" }, d.synopsis) : null,
         q ? h("span", { class: "hcm-disc-q" + (pref ? " hcm-on" : "") }, (pref ? "★ Tu calidad: " : "Calidad: ") + q) : null),
       h("div", { class: "hcm-disc-stamp" }));
     swipe(el);
     return el;
+  }
+  // «Se parece a Hero (2002) y Tigre y dragón (2000), que has visto.»
+  // «A, B y C» («e» delante de i- / hi-: «Hero e Ibiza»)
+  const andList = (xs) => {
+    if (xs.length < 2) return xs;
+    const last = xs[xs.length - 1];
+    const e = /^h?i(?![aeouáéó])/i.test(last.textContent) ? " e " : " y ";
+    return [xs.slice(0, -1).map((x, i) => [i ? ", " : "", x]), e, last];
+  };
+  function whyBox(d) {
+    if (!d.sim?.length) return null;
+    const names = d.sim.map((m) => h("b", {}, m.title + (m.year ? ` (${m.year})` : "")));
+    const seenAll = d.sim.every((m) => m.watched);
+    const tail = seenAll ? ", que has visto." : `, que tienes en ${taste?.servers?.[0] || "tu biblioteca"}.`;
+    const lead = d.simKind === "tmdb" ? "Se parece a " : d.simKind === "dir" ? "Del director de " : "En la línea de ";
+    return h("div", { class: "hcm-disc-why" }, lead, andList(names), d.simKind === "dir" ? (seenAll ? ", que has visto." : ".") : tail);
+  }
+  function refreshWhy() {
+    const c = stage?.querySelector(".hcm-disc-card:not(.hcm-out)");
+    if (!c || c.__d !== current) return;
+    const old = c.querySelector(".hcm-disc-why"), box = whyBox(current);
+    if (old) old.replaceWith(box || ""); else if (box) c.querySelector(".hcm-disc-meta").after(box);
   }
   function paint() {
     if (!view) return;
