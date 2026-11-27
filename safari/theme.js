@@ -88,7 +88,7 @@
     look = { ...LOOK_DEFAULT, ...next };
     const light = look.theme === "light" || (look.theme === "auto" && !!lightQuery?.matches);
     html.classList.toggle("hcm-light", light);
-    html.dataset.hcmLayout = look.layout || "grid";
+    html.dataset.hcmLayout = html.classList.contains("hcm-tv") ? "streaming" : (look.layout || "grid");
     html.dataset.hcmSize = look.size || "m";
     html.dataset.hcmTitleSize = look.titleSize || "m";
     try { localStorage.setItem("uispa-look", JSON.stringify(look)); } catch (_) {}
@@ -225,6 +225,8 @@
       h("div", { class: "hcm-look-label" }, "Título y datos"),
       h("div", { class: "hcm-seg" }, opt("titleSize", "s", "Pequeño"), opt("titleSize", "m", "Mediano"), opt("titleSize", "l", "Grande")),
       h("label", { class: "hcm-look-check", onclick: (e) => e.stopPropagation() }, scroll, " Cargar más títulos al bajar"),
+      h("button", { type: "button", class: "hcm-look-tv", title: "Para usar con mando o flechas en la tele (tecla T)",
+        onclick: () => document.dispatchEvent(new CustomEvent("uispa-tv-toggle")) }, "📺 Modo tele (T)"),
       h("a", { href: "#", class: "hcm-look-classic", onclick: (e) => {
         e.preventDefault();
         try { localStorage.setItem("hcm-off", "1"); } catch (_) {}
@@ -290,7 +292,8 @@
   // Revista. Todos los elementos son a.hcm-card con .poster-wrapper, data-type y
   // data-last, para que los favoritos (estrella, fechas) funcionen igual.
   const LAYOUTS = ["grid", "streaming", "list", "magazine"];
-  const layoutOf = () => (LAYOUTS.includes(look.layout) ? look.layout : "grid");
+  // En el modo tele (tv.js) la portada va siempre en filas, tipo Netflix
+  const layoutOf = () => html.classList.contains("hcm-tv") ? "streaming" : (LAYOUTS.includes(look.layout) ? look.layout : "grid");
   const TYPE_ORDER = [["series", "Series"], ["movie", "Películas"], ["doc", "Documentales"], ["music", "Música"]];
 
   function itemShell(d, cls, posterKids, bodyKids) {

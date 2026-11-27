@@ -23,6 +23,13 @@
     if (look.size) document.documentElement.dataset.hcmSize = look.size;
     if (look.titleSize) document.documentElement.dataset.hcmTitleSize = look.titleSize;
   } catch (_) {}
+  // Modo tele (tv.js): se mantiene mientras dure la pestaña; la portada, en filas
+  try {
+    if (sessionStorage.getItem("uispa-tv")) {
+      document.documentElement.classList.add("hcm-tv");
+      document.documentElement.dataset.hcmLayout = "streaming";
+    }
+  } catch (_) {}
   // Red de seguridad: si el rediseño falla, se vuelve a mostrar la web original.
   setTimeout(() => {
     if (!document.getElementById("hcm-root")) document.documentElement.classList.remove("hcm", "hcm-loading");

@@ -65,7 +65,8 @@
       "js": [
         "content.js",
         "media.js",
-        "favorites.js"
+        "favorites.js",
+        "tv.js"
       ],
       "run_at": "document_idle"
     }

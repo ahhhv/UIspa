@@ -110,6 +110,7 @@ Pulsa el botón ◐ de la barra superior de Hispashare (o ve a la pestaña **Apa
 - **Tema:** oscuro, claro o automático (sigue el de tu sistema).
 - **Diseño:** Rejilla, Streaming, Lista o Revista.
 - **Calidad preferida:** marca resolución, origen y códec (o elige un preset: Apple TV, Smart TV, Fire TV, Chromecast, Shield, Kodi, móvil, NAS sin conversión por hardware, ahorrar espacio, equilibrado o máxima calidad) y en cada ficha se resaltan con «★ Tu calidad» las versiones que encajan.
+- **Modo tele:** para usar Hispashare en la tele desde un portátil o mini PC. Se activa con la tecla **T**, desde el menú ◐ o al poner el navegador en pantalla completa (F11). Todo más grande y manejable con flechas + Intro + Atrás: teclado, mando de la tele (HDMI-CEC) o mando de consola (A aceptar, B atrás, Y buscar, X favorito, Start entrar/salir). La portada pasa a filas tipo Netflix, hay teclado en pantalla para buscar (`/`) y **F** marca favorito. Atrás en la portada sale del modo tele.
 - **Carátulas:** pequeñas, medianas o grandes.
 - **Título y datos:** tamaño del texto de las tarjetas (pequeño, mediano o grande).
 - **Cargar más títulos al bajar:** scroll infinito en la portada y las búsquedas; si lo desactivas, vuelve la paginación.
@@ -209,6 +210,7 @@ Las tres versiones comparten el mismo código; solo cambian el manifiesto y el s
 |---|---|
 | `manifest.json` | Definición de la extensión |
 | `theme-early.js`, `theme.js`, `theme.css` | Rediseño de la web: apariencia, scroll infinito, versiones plegables y temporadas |
+| `tv.js` | Modo tele: navegación con flechas, mando de la tele o de consola, teclado en pantalla |
 | `content.js`, `content.css` | Botones de copiar, eMule, descarga remota y NAS (también «los que faltan») y avisos |
 | `media.js` | Marcas de Plex o Jellyfin en las fichas |
 | `background.js` | Segundo plano: atajos y menús |
